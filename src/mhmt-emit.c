@@ -161,6 +161,14 @@ INVALID_CODE_MEGALZ:
 
 
 
+
+
+
+
+
+
+
+
 // actually generate output file from optimal chain - hrum version
 ULONG emit_hrum(struct optchain * optch, ULONG actual_len)
 {
@@ -196,12 +204,15 @@ ULONG emit_hrum(struct optchain * optch, ULONG actual_len)
 	// manage zx header info
 	if( wrk.zxheader )
 	{
-        success = success && emit_file(wrk.indata[actual_len-5], 5);
-		success = success && emit_file("\0x10\0x10", 2);
+        success = success && emit_file( &wrk.indata[actual_len-5], 5);
+		success = success && emit_file( "\020\020", 2);
+
+		// then, also, fix actual_len
+		actual_len -= 5;
 	}
 
-	// copy first byte as-is
-	success = success && emit_file( wrk.indata, 1);
+	// schedule first byte to be placed just after first bitstream word
+	success = success && emit_byte( wrk.indata[0], EMIT_BYTE_ADD);
 
 	// go emitting codes
 	position = 1;
@@ -245,46 +256,63 @@ ULONG emit_hrum(struct optchain * optch, ULONG actual_len)
 			else
 				goto INVALID_CODE_HRUM;
 		}
-		else if( 3<=length && length<=255 )
+		else if( length==3 )
 		{
-			// length coding
-			if( length==3 ) // %010
+			if( (-256)<=disp && disp<=(-1) ) // %010<byte>
 			{
 				success = success && emit_bits( 0x40000000, 3 );
-			}
-			else // length==4..255, %011
-			{
-				success = success && emit_bits( 0x60000000, 3 );
-
-				// calculate size of variable bits
-				varlen = 0;
-				varbits = (length-2)>>1;
-				while( varbits )
-				{
-					varbits >>= 1;
-					varlen++;
-				}
-
-				varbits = length-2-(1<<varlen); // prepare length coding
-
-				success = success && emit_bits(       1<<(32-varlen), varlen );
-				success = success && emit_bits( varbits<<(32-varlen), varlen );
-			}
-
-			// displacement coding
-			if( (-256)<=disp && disp<=(-1) )
-			{
-				success = success && emit_bits( 0, 1 );
-				success = success && emit_byte( (UBYTE)(0x00ff & disp), EMIT_BYTE_ADD );
+				success = success && emit_byte( (UBYTE)(0x00FF & disp), EMIT_BYTE_ADD );
 
 				if( max_disp > disp ) max_disp = disp;
 			}
-			else if( (-4352)<=disp && disp<(-256) )
+			else if( (-4096)<=disp && disp<(-256) ) //%01100<3>1abcd<disp>
+			{
+				success = success && emit_bits( 0x60000000, 5 );
+				success = success && emit_byte( 0x03, EMIT_BYTE_ADD );
+				success = success && emit_bits( 0x80000000, 1 );
+				success = success && emit_bits( (0x0F00&disp)<<20, 4 );
+				success = success && emit_byte( (UBYTE)(0x00FF & disp), EMIT_BYTE_ADD );
+
+				if( max_disp > disp ) max_disp = disp;
+			}
+			else
+				goto INVALID_CODE_HRUM;
+		}
+		else if( 4<=length && length<=255 )
+		{
+			// length coding
+			if( length<=15 )
+			{
+				varlen=2;
+
+				varbits = (length % 3)<<30; // low 2 bits (except for length==15)
+				if( length==15 ) varbits = 0xC0000000;
+
+				if( length>=6 ) { varbits = 0xC0000000 | (varbits>>2); varlen += 2; }
+				if( length>=9 ) { varbits = 0xC0000000 | (varbits>>2); varlen += 2; }
+				if( length>=12) { varbits = 0xC0000000 | (varbits>>2); varlen += 2; }
+
+				success = success && emit_bits( 0x60000000, 3 );
+				success = success && emit_bits( varbits, varlen );
+			}
+			else // 15<length<=255: %01100<len>
+			{
+				success = success && emit_bits( 0x60000000, 5 );
+				success = success && emit_byte( (UBYTE)(length&0x00FF), EMIT_BYTE_ADD );
+			}
+
+			// displacement coding
+			if( (-256)<=disp && disp<=(-1) ) // %0<disp>
+			{
+				success = success && emit_bits( 0x00000000, 1 );
+				success = success && emit_byte( (UBYTE)(0x00FF & disp), EMIT_BYTE_ADD );
+
+				if( max_disp > disp ) max_disp = disp;
+			}
+			else if( (-4096)<=disp && disp<(-256) ) //%1abcd<disp>
 			{
 				success = success && emit_bits( 0x80000000, 1 );
-
-				success = success && emit_bits( (0x0F00&(disp+0x0100))<<20, 4 );
-
+				success = success && emit_bits( (0x0F00&disp)<<20, 4 );
 				success = success && emit_byte( (UBYTE)(0x00FF & disp), EMIT_BYTE_ADD );
 
 				if( max_disp > disp ) max_disp = disp;
@@ -302,10 +330,11 @@ INVALID_CODE_HRUM:
 		position += length;
 	}
 
-	// stop-code
-	success = success && emit_bits( 0x60100000, 12 );
-	success = success && emit_bits( 0, EMIT_BITS_FINISH ); // this also flushes emit_byte()
+	// stop-code: %01100<0>
+	success = success && emit_bits( 0x60000000, 5 );
+	success = success && emit_byte( 0x00, EMIT_BYTE_ADD );
 
+	success = success && emit_bits( 0, EMIT_BITS_FINISH ); // this also flushes emit_byte()
 	success = success && emit_file( NULL, EMIT_FILE_FINISH );
 
 	if( success )
@@ -330,7 +359,7 @@ INVALID_CODE_HRUM:
 // When length=EMIT_FILE_FINISH (0), flushes tail to file
 // When length=EMIT_FILE_INIT (-1), initializes.
 //
-// returns zero in case of any problems (fails to write buffet to the file), otherwise non-zero
+// returns zero in case of any problems (fails to write buffer to file), otherwise non-zero
 ULONG emit_file(UBYTE * bytes, LONG length)
 {
 	static UBYTE buffer[EMIT_FILEBUF_SIZE];
