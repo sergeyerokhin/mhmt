@@ -51,13 +51,13 @@ ULONG pack(void)
 		get_lz_price  = &get_lz_price_megalz;
 		emit          = &emit_megalz;
 	}
-	else/* if( wrk.packtype==PK_HRM )
+	else if( wrk.packtype==PK_HRM )
 	{
 		make_lz_codes = &make_lz_codes_hrum;
 		get_lz_price  = &get_lz_price_hrum;
 		emit_code     = &emit_code_hrum;
 	}
-	else if( wrk.packtype==PK_HST )
+	else/* if( wrk.packtype==PK_HST )
 	{
 		make_lz_codes = &make_lz_codes_hrust;
 		get_lz_price  = &get_lz_price_hrust;
