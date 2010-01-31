@@ -10,10 +10,10 @@
 	ULONG byte,bits,bitlen;
 	LONG disp;
 	ULONG length;
-	
+
 	ULONG stop;
-	
-	
+
+
 	ULONG success = 1;
 
 
@@ -23,7 +23,6 @@
 #ifdef DPK_CHECK
 	if( 0xFFFFFFFF == check )
 	{
-NO_BYTE:
  #ifdef DPK_REPERR
 		printf("mhmt-depack-megalz.c:{} - Can't rewind input stream!\n");
  #endif
@@ -38,6 +37,7 @@ NO_BYTE:
 #ifdef DPK_CHECK
 	if( 0xFFFFFFFF == byte )
 	{
+NO_BYTE:
  #ifdef DPK_REPERR
 		printf("mhmt-depack-megalz.c:{} - Can't get byte from input stream!\n");
  #endif
@@ -97,11 +97,11 @@ NO_BITS:
 #ifdef DPK_CHECK
 			if( 0xFFFFFFFF == bits ) goto NO_BITS;
 #endif
-			
+
 			switch( 0x03 & bits )
 			{
 			case 0x00: // %000xxx
-				
+
 				bits = depack_getbits(3,DEPACK_GETBITS_NEXT);
 #ifdef DPK_CHECK
 				if( 0xFFFFFFFF == bits ) goto NO_BITS;
@@ -123,28 +123,28 @@ WRONG_DISP:
 				success = success && depack_repeat(disp,1);
 #endif
 				break;
-			
-			
+
+
 			case 0x01: // %001
-				
+
 				byte = depack_getbyte(DEPACK_GETBYTE_NEXT);
 #ifdef DPK_CHECK
 				if( 0xFFFFFFFF == byte ) goto NO_BYTE;
 #endif
-				
+
 				disp = (-256) | (0x00FF&byte); // -1..-256
 #ifdef DPK_CHECK
 				if( (ULONG)(-disp) > wrk.maxwin ) goto WRONG_DISP;
-#endif				
-				
+#endif
+
 #ifdef DPK_DEPACK
 				success = success && depack_repeat(disp,2);
-#endif				
+#endif
 				break;
-			
-			
+
+
 			case 0x02: // %010
-				
+
 				length = 3;
 FAR_DISP:
 				bits = depack_getbits(1,DEPACK_GETBITS_NEXT);
@@ -160,11 +160,11 @@ FAR_DISP:
 					disp = (-256) | (0x00FF&byte); // -1..-256
 #ifdef DPK_CHECK
 					if( (ULONG)(-disp) > wrk.maxwin ) goto WRONG_DISP;
-#endif				
-				
+#endif
+
 #ifdef DPK_DEPACK
 					success = success && depack_repeat(disp,length);
-#endif				
+#endif
 				}
 				else // -257..-4352
 				{
@@ -179,18 +179,18 @@ FAR_DISP:
 					disp = ( ((-16)|(15&bits)) - 1 )*0x100 + byte;
 #ifdef DPK_CHECK
 					if( (ULONG)(-disp) > wrk.maxwin ) goto WRONG_DISP;
-#endif				
+#endif
 
 #ifdef DPK_DEPACK
 					success = success && depack_repeat(disp,length);
-#endif				
+#endif
 				}
-				
+
 				break;
-			
-			
+
+
 			case 0x03: // %011 - variable length
-				
+
 				bitlen = 0;
 				do
 				{
@@ -198,10 +198,10 @@ FAR_DISP:
 #ifdef DPK_CHECK
 					if( 0xFFFFFFFF == bits ) goto NO_BITS;
 #endif
-					bitlen++;				
-				
+					bitlen++;
+
 				} while ( !(1&bits) );
-				
+
 				if( bitlen==9 ) // happy final! WARNING: does not check whether there is remaining of input stream left unused!
 				{
 					stop = 1;
@@ -231,11 +231,11 @@ FAR_DISP:
 				}
 #endif
 				goto FAR_DISP;
-				
+
 				break;
 			}
 		}
-	
+
 	}
 
 	return success;

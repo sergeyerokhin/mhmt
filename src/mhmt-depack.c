@@ -18,10 +18,10 @@ ULONG depack(void)
 	ULONG (*checker) (void) = NULL;
 	ULONG (*depacker)(void) = NULL;
 
-	
+
 	ULONG success=1;
-	
-	
+
+
 	// some preparations
 	//
 	if( wrk.packtype==PK_MLZ )
@@ -29,12 +29,12 @@ ULONG depack(void)
 		checker  = &checker_megalz;
 		depacker = &depacker_megalz;
 	}
-	else/* if( wrk.packtype==PK_HRM )
+	else if( wrk.packtype==PK_HRM )
 	{
-		check_  = &check_hrum;
-		depack_ = &depack_hrum;
+		checker  = &checker_hrum;
+		depacker = &depacker_hrum;
 	}
-	else if( wrk.packtype==PK_HST )
+	else/* if( wrk.packtype==PK_HST )
 	{
 		check_  = &check_hrust;
 		depack_ = &depack_hrust;
@@ -44,39 +44,39 @@ ULONG depack(void)
 		printf("mhmt-depack.c:depack() - format unsupported!\n");
 		return 0;
 	}
-	
-	
-	
+
+
+
 	// allocate buffer used for depacking
 	//
 	buf_size = ( wrk.maxwin==4352 ) ? 8192 : wrk.maxwin; // provided there are no other non-2^n sizes
-	
+
 	buffer=(UBYTE*)malloc(buf_size);
 	if( !buffer )
 	{
 		printf("mhmt-depack.c:depack() cannot allocate memory for depack buffer!\n");
 		return 0;
 	}
-	
+
 	buf_ptr=0;
-	
-	
+
+
 	success = success && emit_file(NULL,EMIT_FILE_INIT);
-	
+
 	success = success && (*checker) ();
-		
+
 	success = success && (*depacker)();
-	
+
 	success = success && depack_outbyte( 0, DEPACK_OUTBYTE_FLUSH );
-	
+
 	success = success && emit_file(NULL,EMIT_FILE_FINISH);
-	
-	
-	
-	
+
+
+
+
 	if( buffer )
 		free(buffer);
-	
+
 	return success;
 }
 
@@ -87,13 +87,23 @@ ULONG depack(void)
 #define DPK_REPERR
 ULONG checker_megalz(void)
 #include "mhmt-depack-megalz.c"
-
+ULONG checker_hrum(void)
+#include "mhmt-depack-hrum.c"
+//
 // actually depacks without checkings
 #define DPK_DEPACK
 #undef  DPK_CHECK
 #undef  DPK_REPERR
 ULONG depacker_megalz(void)
 #include "mhmt-depack-megalz.c"
+ULONG depacker_hrum(void)
+#include "mhmt-depack-hrum.c"
+
+
+
+
+
+
 
 
 // rewind - to the beginning of input stream, byte - next byte
@@ -101,7 +111,7 @@ ULONG depacker_megalz(void)
 ULONG depack_getbyte(ULONG operation)
 {
 	static ULONG position;
-	
+
 	if( operation==DEPACK_GETBYTE_REWIND )
 	{
 		position=0;
@@ -114,7 +124,7 @@ ULONG depack_getbyte(ULONG operation)
 	}
 	else // should never happen in a correct program
 		printf("mhmt-depack.c:depack_get() - wrong operation code\n");
-	
+
 	return 0xFFFFFFFF;
 }
 
@@ -126,9 +136,9 @@ ULONG depack_getbits(ULONG numbits, ULONG operation)
 {
 	static ULONG bits;
 	static ULONG num_bits_left;
-	
+
 	ULONG fetched_bits;
-	
+
 
 	if( operation==DEPACK_GETBITS_FORCE ) // force word retrieval (for start of stream)
 	{
@@ -144,7 +154,7 @@ ULONG depack_getbits(ULONG numbits, ULONG operation)
 			printf("mhmt-depack.c:depack_getbits() - too many (>31) or zero bits requested\n");
 			return 0xFFFFFFFF;
 		}
-		
+
 		fetched_bits = 0;
 		do
 		{
@@ -157,11 +167,11 @@ ULONG depack_getbits(ULONG numbits, ULONG operation)
 					num_bits_left = wrk.wordbit ? 16 : 8;
 				}
 			}
-		
+
 			fetched_bits = ( fetched_bits<<1 ) | ( 1&(bits>>31) );
 			bits <<= 1;
 			num_bits_left--;
-		
+
 			if( wrk.fullbits )
 			{
 				if( !num_bits_left )
@@ -171,9 +181,9 @@ ULONG depack_getbits(ULONG numbits, ULONG operation)
 					num_bits_left = wrk.wordbit ? 16 : 8;
 				}
 			}
-		
-		} while( --numbits );	
-		
+
+		} while( --numbits );
+
 		return fetched_bits;
 	}
 	else
@@ -189,7 +199,7 @@ ULONG depack_getbits(ULONG numbits, ULONG operation)
 ULONG depack_getbits_word(void)
 {
 	ULONG bits,bits2;
-	
+
 	if( wrk.wordbit ) // 16bits
 	{
 		if( wrk.bigend )
@@ -206,7 +216,7 @@ ULONG depack_getbits_word(void)
 			bits  = depack_getbyte(DEPACK_GETBYTE_NEXT);
 			if( bits  == 0xFFFFFFFF ) return 0xFFFFFFFF;
 		}
-		
+
 		bits = (bits<<24) | ( 0x00FF0000&(bits2<<16) );
 	}
 	else // 8bits
@@ -229,13 +239,13 @@ ULONG depack_outbyte(UBYTE byte, ULONG operation)
 	if( operation==DEPACK_OUTBYTE_ADD )
 	{
 		buffer[buf_ptr++] = byte;
-	
+
 		if( buf_ptr >= buf_size )
 		{
 			buf_ptr=0;
 			return emit_file( buffer, buf_size );
 		}
-		
+
 		return 1;
 	}
 	else if( operation==DEPACK_OUTBYTE_FLUSH )
@@ -258,7 +268,7 @@ ULONG depack_repeat(LONG disp, ULONG length)
 {
 	ULONG back_ptr;
 	ULONG success=1;
-	
+
 	// in a self-consistent system, these three errors should never appear, since there is input stream check before actual depacking
 	if( !length )
 	{
@@ -278,13 +288,13 @@ ULONG depack_repeat(LONG disp, ULONG length)
 	else
 	{
 		back_ptr = (disp+buf_ptr) & (buf_size-1); // buf_size MUST BE 2^N!
-		
+
 		do
 		{
 			success = success && depack_outbyte( buffer[back_ptr], DEPACK_OUTBYTE_ADD ); // also increases buf_ptr
-		
-			back_ptr = (back_ptr+1) & (buf_size-1); // buf_size MUST BE 2^N!		
-		
+
+			back_ptr = (back_ptr+1) & (buf_size-1); // buf_size MUST BE 2^N!
+
 		} while( --length );
 	}
 

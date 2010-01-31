@@ -205,7 +205,7 @@ ULONG emit_hrum(struct optchain * optch, ULONG actual_len)
 	if( wrk.zxheader )
 	{
         success = success && emit_file( &wrk.indata[actual_len-5], 5);
-		success = success && emit_file( "\020\020", 2);
+		success = success && emit_file( (UBYTE*)"\020\020", 2);
 
 		// then, also, fix actual_len
 		actual_len -= 5;

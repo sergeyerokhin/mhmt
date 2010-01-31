@@ -33,6 +33,8 @@ ULONG depack_repeat(LONG disp, ULONG length);
 
 ULONG  checker_megalz(void);
 ULONG depacker_megalz(void);
+ULONG  checker_hrum(void);
+ULONG depacker_hrum(void);
 
 
 
