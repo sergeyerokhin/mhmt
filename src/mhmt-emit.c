@@ -204,11 +204,8 @@ ULONG emit_hrum(struct optchain * optch, ULONG actual_len)
 	// manage zx header info
 	if( wrk.zxheader )
 	{
-        success = success && emit_file( &wrk.indata[actual_len-5], 5);
-		success = success && emit_file( (UBYTE*)"\020\020", 2);
-
-		// then, also, fix actual_len
-		actual_len -= 5;
+        success = success && emit_file( &wrk.indata[wrk.inlen-5], 5);
+		success = success && emit_file( (UBYTE*)"\020\020", 2); // 0x10, 0x10
 	}
 
 	// schedule first byte to be placed just after first bitstream word
@@ -342,6 +339,210 @@ INVALID_CODE_HRUM:
 
 	return success;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ULONG emit_hrust(struct optchain * optch, ULONG actual_len)
+{
+	ULONG position;
+	LONG length;
+	LONG disp;
+
+	LONG max_disp; // maximum encountered displacement
+
+
+	ULONG varbits,varlen;
+
+	ULONG success = 1;
+
+	max_disp = 0;
+
+
+	// some checks
+	if( !optch )
+	{
+		printf("mhmt-emit.c:emit_hrust() - NULL passed!\n");
+		return 0;
+	}
+
+	// initialize
+	success = success && emit_file(NULL, EMIT_FILE_INIT);
+
+	success = success && emit_byte(0, EMIT_BYTE_INIT);
+
+	success = success && emit_bits(0, EMIT_BITS_INIT);
+
+
+	// manage zx header info
+	if( wrk.zxheader )
+	{
+		success = success && emit_file( (UBYTE*)"HR", 2);
+
+
+        success = success && emit_file( &wrk.indata[wrk.inlen-5], 5);
+		success = success && emit_file( (UBYTE*)"\020\020", 2); // 0x10, 0x10
+	}
+
+	// schedule first byte to be placed just after first bitstream word
+	success = success && emit_byte( wrk.indata[0], EMIT_BYTE_ADD);
+
+	// go emitting codes
+	position = 1;
+
+	while( (position<actual_len) && success )
+	{
+		length = optch[position].code.length;
+		disp   = optch[position].code.disp;
+
+		if( length==0 )
+		{
+			printf("mhmt-emit.c:emit_hrust() - encountered stop-code in optimal chain before emitting all data!\n");
+			return 0;
+		}
+		else if( length==1 ) // either copy-byte or len=1 code
+		{
+			if( disp==0 ) // copy-byte (%1<byte>)
+			{
+				success = success && emit_bits( 0x80000000, 1 );
+				success = success && emit_byte( wrk.indata[position], EMIT_BYTE_ADD );
+			}
+			else if( (-8)<=disp && disp<=(-1) ) // len=1, disp=-1..-8 (%000abc)
+			{
+				success = success && emit_bits( 0x00000000,   3 );
+				success = success && emit_bits( disp<<(32-3), 3 );
+
+				if( max_disp > disp ) max_disp = disp;
+			}
+			else
+				goto INVALID_CODE_HRUST;
+		}
+		else if( length==2 )
+		{
+			if( (-256)<=disp && disp<=(-1) ) // %001<byte>
+			{
+				success = success && emit_bits( 0x20000000, 3 );
+				success = success && emit_byte( (UBYTE)(0x00FF & disp), EMIT_BYTE_ADD );
+
+				if( max_disp > disp ) max_disp = disp;
+			}
+			else
+				goto INVALID_CODE_HRUST;
+		}
+		else if( length==3 )
+		{
+			if( (-256)<=disp && disp<=(-1) ) // %010<byte>
+			{
+				success = success && emit_bits( 0x40000000, 3 );
+				success = success && emit_byte( (UBYTE)(0x00FF & disp), EMIT_BYTE_ADD );
+
+				if( max_disp > disp ) max_disp = disp;
+			}
+			else if( (-4096)<=disp && disp<(-256) ) //%01100<3>1abcd<disp>
+			{
+				success = success && emit_bits( 0x60000000, 5 );
+				success = success && emit_byte( 0x03, EMIT_BYTE_ADD );
+				success = success && emit_bits( 0x80000000, 1 );
+				success = success && emit_bits( (0x0F00&disp)<<20, 4 );
+				success = success && emit_byte( (UBYTE)(0x00FF & disp), EMIT_BYTE_ADD );
+
+				if( max_disp > disp ) max_disp = disp;
+			}
+			else
+				goto INVALID_CODE_HRUST;
+		}
+		else if( 4<=length && length<=255 )
+		{
+			// length coding
+			if( length<=15 )
+			{
+				varlen=2;
+
+				varbits = (length % 3)<<30; // low 2 bits (except for length==15)
+				if( length==15 ) varbits = 0xC0000000;
+
+				if( length>=6 ) { varbits = 0xC0000000 | (varbits>>2); varlen += 2; }
+				if( length>=9 ) { varbits = 0xC0000000 | (varbits>>2); varlen += 2; }
+				if( length>=12) { varbits = 0xC0000000 | (varbits>>2); varlen += 2; }
+
+				success = success && emit_bits( 0x60000000, 3 );
+				success = success && emit_bits( varbits, varlen );
+			}
+			else // 15<length<=255: %01100<len>
+			{
+				success = success && emit_bits( 0x60000000, 5 );
+				success = success && emit_byte( (UBYTE)(length&0x00FF), EMIT_BYTE_ADD );
+			}
+
+			// displacement coding
+			if( (-256)<=disp && disp<=(-1) ) // %0<disp>
+			{
+				success = success && emit_bits( 0x00000000, 1 );
+				success = success && emit_byte( (UBYTE)(0x00FF & disp), EMIT_BYTE_ADD );
+
+				if( max_disp > disp ) max_disp = disp;
+			}
+			else if( (-4096)<=disp && disp<(-256) ) //%1abcd<disp>
+			{
+				success = success && emit_bits( 0x80000000, 1 );
+				success = success && emit_bits( (0x0F00&disp)<<20, 4 );
+				success = success && emit_byte( (UBYTE)(0x00FF & disp), EMIT_BYTE_ADD );
+
+				if( max_disp > disp ) max_disp = disp;
+			}
+			else
+				goto INVALID_CODE_HRUST;
+		}
+		else
+		{
+INVALID_CODE_HRUST:
+			printf("mhmt-emit.c:emit_hrust() - invalid code: length=%d, displacement=%d\n",length,disp);
+			return 0;
+		}
+
+		position += length;
+	}
+
+	// stop-code: %01100<0>
+	success = success && emit_bits( 0x60000000, 5 );
+	success = success && emit_byte( 0x00, EMIT_BYTE_ADD );
+
+	success = success && emit_bits( 0, EMIT_BITS_FINISH ); // this also flushes emit_byte()
+	success = success && emit_file( NULL, EMIT_FILE_FINISH );
+
+	if( success )
+		printf("Maximum displacement actually used is %d.\n",-max_disp);
+
+	return success;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

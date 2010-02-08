@@ -45,9 +45,9 @@ void update_optch(ULONG position, struct lzcode * codes, ULONG (*get_lz_price)(U
 	ULONG codepos;
 	ULONG bitlen;
 	ULONG newpos;
+	LONG len;
 
-
-	for( codepos = 0; codes[codepos].length; codepos++ ) // loop through all existing lz codes
+	for( codepos = 0; len=codes[codepos].length; codepos++ ) // loop through all existing lz codes
 	{
 		bitlen = (*get_lz_price)(position, &codes[codepos]); // get bit length of given lz code
 		if( !bitlen )
@@ -57,7 +57,9 @@ void update_optch(ULONG position, struct lzcode * codes, ULONG (*get_lz_price)(U
 		}
 		else
 		{
-			newpos = position + codes[codepos].length; // look where current lz code points to and take from there old price reaching that location
+			if( len<0 ) len=(-len); // deal with negative lengths (special markers)
+
+			newpos = position + len; // look where current lz code points to and take from there old price reaching that location
 
 			if( optch[newpos].price > bitlen + optch[position].price ) // if oldprice is worse than with current lz code
 			{
@@ -75,6 +77,7 @@ void reverse_optch(struct optchain * optch, ULONG actual_len)
 {
 	struct lzcode curr, temp;
 	ULONG position;
+	LONG len;
 
 	position = actual_len;
 
@@ -82,7 +85,10 @@ void reverse_optch(struct optchain * optch, ULONG actual_len)
 
 	while(position>1)
 	{
-		position -= temp.length;
+		len = temp.length;
+		if( len<0 ) len=(-len);
+
+		position -= len;
 
 		curr = temp;
 

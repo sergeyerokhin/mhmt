@@ -23,6 +23,8 @@
 // end of codes list: length = 0 <= check it!
 //                    disp   = 0
 
+
+
 struct lzcode
 {
 	LONG length;
@@ -33,10 +35,11 @@ struct lzcode
 
 void make_lz_codes_megalz(ULONG position, ULONG actual_len, UBYTE * hash, struct lzcode * codes);
 void make_lz_codes_hrum  (ULONG position, ULONG actual_len, UBYTE * hash, struct lzcode * codes);
-//void make_lz_codes_hrust (ULONG position, ULONG actual_len, UBYTE * hash, struct lzcode * codes);
+void make_lz_codes_hrust (ULONG position, ULONG actual_len, UBYTE * hash, struct lzcode * codes);
 
 ULONG get_lz_price_megalz(ULONG position, struct lzcode * lzcode);
-ULONG get_lz_price_hrum(ULONG position, struct lzcode * lzcode);
+ULONG get_lz_price_hrum  (ULONG position, struct lzcode * lzcode);
+ULONG get_lz_price_hrust (ULONG position, struct lzcode * lzcode);
 
 
 

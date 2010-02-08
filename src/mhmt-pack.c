@@ -57,13 +57,13 @@ ULONG pack(void)
 		get_lz_price  = &get_lz_price_hrum;
 		emit          = &emit_hrum;
 	}
-	else/* if( wrk.packtype==PK_HST )
+	else if( wrk.packtype==PK_HST )
 	{
 		make_lz_codes = &make_lz_codes_hrust;
 		get_lz_price  = &get_lz_price_hrust;
 		emit          = &emit_hrust;
 	}
-	else*/
+	else
 	{
 		printf("mhmt-pack.c:pack() - format unsupported!\n");
 		return 0;
@@ -73,7 +73,15 @@ ULONG pack(void)
 	actual_len = wrk.inlen;
 	if( wrk.zxheader )
 	{
-		if( (wrk.packtype!=PK_HRM) && (wrk.packtype!=PK_HST) )
+		if( wrk.packtype==PK_HRM )
+		{
+			actual_len -= 5;
+		}
+		else if( wrk.packtype==PK_HST )
+		{
+			actual_len -= 6;
+		}
+		else
 		{
 			printf("mhmt-pack.c:pack() - there must be no zxheader for anything except hrust or hrum!\n");
 			return 0;
