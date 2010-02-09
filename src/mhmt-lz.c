@@ -573,7 +573,7 @@ INVALID_CODE_MEGALZ:
 
 ULONG get_lz_price_hrum(ULONG position, struct lzcode * lzcode)
 {
-	ULONG varbits,varlen;
+	ULONG varlen;
 	LONG length,disp;
 
 	length = lzcode->length;
