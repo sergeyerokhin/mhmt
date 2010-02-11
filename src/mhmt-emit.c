@@ -363,10 +363,13 @@ ULONG emit_hrust(struct optchain * optch, ULONG actual_len)
 
 	LONG max_disp; // maximum encountered displacement
 
-
 	ULONG varbits,varlen;
-
 	ULONG success = 1;
+
+	UBYTE wrlen[2];
+
+	ULONG expbitlen = 2; // expandable match: bitlength of displacement
+
 
 	max_disp = 0;
 
@@ -391,9 +394,13 @@ ULONG emit_hrust(struct optchain * optch, ULONG actual_len)
 	{
 		success = success && emit_file( (UBYTE*)"HR", 2);
 
+		wrlen[0] = wrk.inlen&0x00FF;
+		wrlen[1] = (wrk.inlen>>8)&0x00FF;
+		success = success && emit_file( wrlen, 2); // unpacked length mod 65536
 
-        success = success && emit_file( &wrk.indata[wrk.inlen-5], 5);
-		success = success && emit_file( (UBYTE*)"\020\020", 2); // 0x10, 0x10
+		success = success && emit_file( wrlen, 2); // packed length - !to be filled later!
+
+        success = success && emit_file( &wrk.indata[wrk.inlen-6], 6); // last bytes
 	}
 
 	// schedule first byte to be placed just after first bitstream word
@@ -412,98 +419,188 @@ ULONG emit_hrust(struct optchain * optch, ULONG actual_len)
 			printf("mhmt-emit.c:emit_hrust() - encountered stop-code in optimal chain before emitting all data!\n");
 			return 0;
 		}
-		else if( length==1 ) // either copy-byte or len=1 code
+		else if( disp==0 ) // copy-bytes
 		{
-			if( disp==0 ) // copy-byte (%1<byte>)
+			if( length==1 ) // 1 byte: %1<byte>
 			{
 				success = success && emit_bits( 0x80000000, 1 );
 				success = success && emit_byte( wrk.indata[position], EMIT_BYTE_ADD );
 			}
-			else if( (-8)<=disp && disp<=(-1) ) // len=1, disp=-1..-8 (%000abc)
+			else if( (12<=length) && (length<=42) && ( !(length&1) ) ) // %0110001abcd<byte,byte,...>
 			{
-				success = success && emit_bits( 0x00000000,   3 );
-				success = success && emit_bits( disp<<(32-3), 3 );
+				varbits = (length-12)<<27;
+				success = success && emit_bits( 0x62000000, 7 );
 
-				if( max_disp > disp ) max_disp = disp;
+				success = success && emit_bits( varbits, 4 );
+
+				varlen = 0;
+				while( success && (varlen<(ULONG)length) )
+				{
+					success = success && emit_byte( wrk.indata[position+varlen], EMIT_BYTE_ADD );
+					varlen++;
+				}
+			}
+			else
+				goto INVALID_CODE_HRUST;
+		}
+		else if( length==(-3) ) // insertion code
+		{
+			if( (-16)<=disp && disp<=(-1) ) // %011001abcd<byte>
+			{
+				success = success && emit_bits( 0x64000000, 6 );
+				success = success && emit_bits( disp<<(32-4), 4 );
+			}
+			else if( (-79)<=disp && disp<(-16) )
+			{
+				if( disp&1 ) // ffb1..ffef: %01001<byte><byte>
+				{
+					success = success && emit_bits( 0x48000000, 5 );
+
+					varbits = disp&0x00FF;
+					varbits += 15;
+					varbits ^= 3;
+					varbits = ( (varbits>>1)&0x007F ) | ( (varbits<<7)&0x0080 );
+
+					success = success && emit_byte( (UBYTE)(varbits&0x00FF), EMIT_BYTE_ADD );
+				}
+				else // ffb2..ffee: %00110<byte><byte>
+				{
+					success = success && emit_bits( 0x30000000, 5 );
+
+					varbits = disp&0x00FF;
+					varbits += 15;
+					varbits ^= 2;
+					varbits = ( (varbits>>1)&0x007F ) | ( (varbits<<7)&0x0080 );
+
+					success = success && emit_byte( (UBYTE)(varbits&0x00FF), EMIT_BYTE_ADD );
+				}
+			}
+			else
+				goto INVALID_CODE_HRUST;
+
+			success = success && emit_byte( wrk.indata[position+1], EMIT_BYTE_ADD );
+		}
+		else if( length==1 ) // %000abc
+		{
+			if( (-8)<=disp && disp<=(-1) )
+			{
+				success = success && emit_bits( 0x00000000, 3 );
+				success = success && emit_bits( disp<<(32-3), 3 );
 			}
 			else
 				goto INVALID_CODE_HRUST;
 		}
 		else if( length==2 )
 		{
-			if( (-256)<=disp && disp<=(-1) ) // %001<byte>
+			if( (-32)<=disp && disp<=(-1) ) // %00111abcde
 			{
-				success = success && emit_bits( 0x20000000, 3 );
+				success = success && emit_bits( 0x38000000, 5 );
+				success = success && emit_bits( disp<<(32-5), 5 );
+			}
+			else if( (-256)<=disp && disp<(-32) ) // %00110<byte>
+			{
+				success = success && emit_bits( 0x30000000, 5 );
 				success = success && emit_byte( (UBYTE)(0x00FF & disp), EMIT_BYTE_ADD );
-
-				if( max_disp > disp ) max_disp = disp;
+			}
+			else if( (-512)<=disp && disp<(-256) ) // %00101<byte>
+			{
+				success = success && emit_bits( 0x28000000, 5 );
+				success = success && emit_byte( (UBYTE)(0x00FF & disp), EMIT_BYTE_ADD );
+			}
+			else if( (-768)<=disp && disp<(-512) ) // %00100<byte>
+			{
+				success = success && emit_bits( 0x20000000, 5 );
+				success = success && emit_byte( (UBYTE)(0x00FF & disp), EMIT_BYTE_ADD );
 			}
 			else
 				goto INVALID_CODE_HRUST;
 		}
-		else if( length==3 )
+		else if (3<=length && length<=3839 && (-65536)<=disp && disp<=(-1) )
 		{
-			if( (-256)<=disp && disp<=(-1) ) // %010<byte>
-			{
-				success = success && emit_bits( 0x40000000, 3 );
-				success = success && emit_byte( (UBYTE)(0x00FF & disp), EMIT_BYTE_ADD );
+			// emit length
 
-				if( max_disp > disp ) max_disp = disp;
+			if( length<=15 ) // 3..15
+			{
+				success = success && emit_bits( 0, 1 );
+
+				if( length==3 )
+				{
+					success = success && emit_bits( 0x80000000, 2 ); // %010
+				}
+				else
+				{
+					varlen  = length/3;
+					varbits = length%3;
+
+					success = success && emit_bits( 0xFFFFFFFF, varlen<<1 );
+
+					if( length!=15 )
+						success = success && emit_bits( varbits<<(32-2), 2 );
+				}
 			}
-			else if( (-4096)<=disp && disp<(-256) ) //%01100<3>1abcd<disp>
+			else if( length<=127 ) // 16..127: %0110000abcdefg
 			{
-				success = success && emit_bits( 0x60000000, 5 );
-				success = success && emit_byte( 0x03, EMIT_BYTE_ADD );
-				success = success && emit_bits( 0x80000000, 1 );
-				success = success && emit_bits( (0x0F00&disp)<<20, 4 );
-				success = success && emit_byte( (UBYTE)(0x00FF & disp), EMIT_BYTE_ADD );
-
-				if( max_disp > disp ) max_disp = disp;
+				success = success && emit_bits( 0x60000000, 7 );
+				success = success && emit_bits( length<<(32-7), 7 );
 			}
-			else
-				goto INVALID_CODE_HRUST;
-		}
-		else if( 4<=length && length<=255 )
-		{
-			// length coding
-			if( length<=15 )
+			else // 128..3839
 			{
-				varlen=2;
-
-				varbits = (length % 3)<<30; // low 2 bits (except for length==15)
-				if( length==15 ) varbits = 0xC0000000;
-
-				if( length>=6 ) { varbits = 0xC0000000 | (varbits>>2); varlen += 2; }
-				if( length>=9 ) { varbits = 0xC0000000 | (varbits>>2); varlen += 2; }
-				if( length>=12) { varbits = 0xC0000000 | (varbits>>2); varlen += 2; }
-
-				success = success && emit_bits( 0x60000000, 3 );
-				success = success && emit_bits( varbits, varlen );
-			}
-			else // 15<length<=255: %01100<len>
-			{
-				success = success && emit_bits( 0x60000000, 5 );
+				success = success && emit_bits( 0x60000000, 7 );
+				success = success && emit_bits( length<<(32-15), 7 );
 				success = success && emit_byte( (UBYTE)(length&0x00FF), EMIT_BYTE_ADD );
 			}
 
-			// displacement coding
-			if( (-256)<=disp && disp<=(-1) ) // %0<disp>
-			{
-				success = success && emit_bits( 0x00000000, 1 );
-				success = success && emit_byte( (UBYTE)(0x00FF & disp), EMIT_BYTE_ADD );
 
-				if( max_disp > disp ) max_disp = disp;
-			}
-			else if( (-4096)<=disp && disp<(-256) ) //%1abcd<disp>
+			// emit displacement
+			if( (-32)<=disp ) // ffe0..ffff: %10abcde
 			{
-				success = success && emit_bits( 0x80000000, 1 );
-				success = success && emit_bits( (0x0F00&disp)<<20, 4 );
-				success = success && emit_byte( (UBYTE)(0x00FF & disp), EMIT_BYTE_ADD );
-
-				if( max_disp > disp ) max_disp = disp;
+				success = success && emit_bits( 0x80000000, 2 );
+				success = success && emit_bits( disp<<(32-5), 5 );
 			}
-			else
-				goto INVALID_CODE_HRUST;
+			else if( (-256)<=disp ) // ff00..ffdf: %01<byte>
+			{
+				success = success && emit_bits( 0x40000000, 2 );
+				success = success && emit_byte( (UBYTE)(disp&0x00FF), EMIT_BYTE_ADD );
+			}
+			else if( (-512)<=disp ) // fe00..feff: %00<byte>
+			{
+				success = success && emit_bits( 0x00000000, 2 );
+				success = success && emit_byte( (UBYTE)(disp&0x00FF), EMIT_BYTE_ADD );
+			}
+			else // variable code length: [-65536..-512)
+			{
+				//  -513.. -1024  (FDFF..FC00) - 2 bits
+				//  -1025..-2048  (FBFF..F800) - 3
+				//  -2049..-4096  (F7FF..F000) - 4
+				//  -4097..-8192  (EFFF..E000) - 5
+				//  -8193..-16384 (DFFF..C000) - 6
+				// -16385..-32768 (BFFF..8000) - 7
+				// -32769..-65536 (7FFF..0000) - 8
+
+				// determine current displacement length
+				varbits = 1024;
+				varlen  = 2;
+				while( (ULONG)(-disp) > varbits )
+				{
+					varbits <<= 1;
+					varlen++;
+				}
+
+				// emit expansion codes, if necessary: %00110<FE>
+				while( varlen>expbitlen )
+				{
+					success = success && emit_bits( 0x30000000, 5 );
+					success = success && emit_byte( 0xFE, EMIT_BYTE_ADD );
+
+					expbitlen++;
+				}
+
+				// displacement itself: %11ab[cdefgh]<byte>
+
+				success = success && emit_bits( 0xC0000000, 2 );
+				success = success && emit_bits( disp<<(24-expbitlen), expbitlen );
+				success = success && emit_byte( (UBYTE)(disp&0x00FF), EMIT_BYTE_ADD );
+			}
 		}
 		else
 		{
@@ -512,18 +609,27 @@ INVALID_CODE_HRUST:
 			return 0;
 		}
 
-		position += length;
+		if( max_disp > disp ) max_disp = disp;
+
+		if( length>0 ) // account for negative length
+			position += length;
+		else
+			position -= length;
 	}
 
-	// stop-code: %01100<0>
-	success = success && emit_bits( 0x60000000, 5 );
-	success = success && emit_byte( 0x00, EMIT_BYTE_ADD );
+	// stop-code: %0110_0000_0011_11
+	success = success && emit_bits( 0x603C0000, 14 );
 
 	success = success && emit_bits( 0, EMIT_BITS_FINISH ); // this also flushes emit_byte()
 	success = success && emit_file( NULL, EMIT_FILE_FINISH );
 
 	if( success )
+	{
 		printf("Maximum displacement actually used is %d.\n",-max_disp);
+
+		// TODO: patch packed length in file, if zx header
+	}
+
 
 	return success;
 }

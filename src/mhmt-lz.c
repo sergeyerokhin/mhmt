@@ -745,7 +745,7 @@ ULONG get_lz_price_hrust(ULONG position, struct lzcode * lzcode)
 			{
 				tmp = 1024;
 
-				while( position>tmp )
+				while( position>(ULONG)tmp )
 				{
 					varlen++;
 
