@@ -595,21 +595,21 @@ ULONG get_lz_price_hrum(ULONG position, struct lzcode * lzcode)
 		else
 			goto INVALID_CODE_HRUM;
 	}
-	else if( length==3 )
+	else if (3<=length && length<=255)
 	{
-		if( (-256)<=disp && disp<=(-1) )
-			return 11;
-		else if( (-4096)<=disp && disp<(-256) )
-			return 26;
-		else
-			goto INVALID_CODE_HRUM;
-	}
-	else if (4<=length && length<=15)
-	{
-		varlen = 5;
-		if( length>=6 ) varlen += 2;
-		if( length>=9 ) varlen += 2;
-		if( length>=12) varlen += 2;
+		varlen = 3;
+
+		if( 4<=length && length<=15 )
+		{
+			varlen = 5;
+			if( length>=6 ) varlen += 2;
+			if( length>=9 ) varlen += 2;
+			if( length>=12) varlen += 2;
+		}
+		else if( 15<length && length<=255 )
+		{
+			varlen = 13;
+		}
 
 		if( (-256)<=disp && disp<=(-1) )
 			varlen += 9;
@@ -619,15 +619,6 @@ ULONG get_lz_price_hrum(ULONG position, struct lzcode * lzcode)
 			goto INVALID_CODE_HRUM;
 
 		return varlen;
-	}
-	else if( 15<length && length<=255 )
-	{
-		if( (-256)<=disp && disp<=(-1) )
-			return 22;
-		else if( (-4096)<=disp && disp<(-256) )
-			return 26;
-		else
-			goto INVALID_CODE_HRUM;
 	}
 	else
 	{

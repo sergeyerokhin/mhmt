@@ -253,32 +253,14 @@ ULONG emit_hrum(struct optchain * optch, ULONG actual_len)
 			else
 				goto INVALID_CODE_HRUM;
 		}
-		else if( length==3 )
-		{
-			if( (-256)<=disp && disp<=(-1) ) // %010<byte>
-			{
-				success = success && emit_bits( 0x40000000, 3 );
-				success = success && emit_byte( (UBYTE)(0x00FF & disp), EMIT_BYTE_ADD );
-
-				if( max_disp > disp ) max_disp = disp;
-			}
-			else if( (-4096)<=disp && disp<(-256) ) //%01100<3>1abcd<disp>
-			{
-				success = success && emit_bits( 0x60000000, 5 );
-				success = success && emit_byte( 0x03, EMIT_BYTE_ADD );
-				success = success && emit_bits( 0x80000000, 1 );
-				success = success && emit_bits( (0x0F00&disp)<<20, 4 );
-				success = success && emit_byte( (UBYTE)(0x00FF & disp), EMIT_BYTE_ADD );
-
-				if( max_disp > disp ) max_disp = disp;
-			}
-			else
-				goto INVALID_CODE_HRUM;
-		}
-		else if( 4<=length && length<=255 )
+		else if( 3<=length && length<=255 )
 		{
 			// length coding
-			if( length<=15 )
+			if( length==3 )
+			{
+				success = success && emit_bits( 0x40000000, 3 );
+			}
+			else if( length<=15 )
 			{
 				varlen=2;
 

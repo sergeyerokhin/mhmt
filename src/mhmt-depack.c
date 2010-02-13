@@ -65,6 +65,12 @@ ULONG depack(void)
 
 	success = success && (*checker) ();
 
+#ifdef DBG
+	printf("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+#endif
+
+
+
 	success = success && (*depacker)();
 
 	success = success && depack_outbyte( 0, DEPACK_OUTBYTE_FLUSH );
@@ -120,7 +126,12 @@ ULONG depack_getbyte(ULONG operation)
 	else if( operation==DEPACK_GETBYTE_NEXT )
 	{
 		if( position < wrk.inlen )
+		{
+#ifdef DBG
+			printf("<%02x>", wrk.indata[position]);
+#endif
 			return (ULONG)wrk.indata[position++];
+		}
 	}
 	else // should never happen in a correct program
 		printf("mhmt-depack.c:depack_get() - wrong operation code\n");
@@ -133,8 +144,8 @@ ULONG depack_getbyte(ULONG operation)
 //
 // returns 0xFFFFFFFF if error, otherwise LSB-aligned, zero-extended bits
 ULONG depack_getbits(ULONG numbits, ULONG operation)
-{
-	static ULONG bits;
+{	static ULONG bits;
+
 	static ULONG num_bits_left;
 
 	ULONG fetched_bits;
@@ -168,6 +179,9 @@ ULONG depack_getbits(ULONG numbits, ULONG operation)
 				}
 			}
 
+#ifdef DBG
+			printf("%d",bits>>31);
+#endif
 			fetched_bits = ( fetched_bits<<1 ) | ( 1&(bits>>31) );
 			bits <<= 1;
 			num_bits_left--;
@@ -268,6 +282,11 @@ ULONG depack_repeat(LONG disp, ULONG length)
 {
 	ULONG back_ptr;
 	ULONG success=1;
+
+#ifdef DBG
+	printf("\n");
+#endif
+
 
 	// in a self-consistent system, these three errors should never appear, since there is input stream check before actual depacking
 	if( !length )

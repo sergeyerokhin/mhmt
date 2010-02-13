@@ -10,8 +10,8 @@
 			>
 			<DebugSettings
 				Command="$(TargetPath)"
-				WorkingDirectory="D:\d\mehrumst\win32\mhmt\Debug"
-				CommandArguments="-d -maxwin256 mhmt.0256"
+				WorkingDirectory="D:\d\mhmt\win32\mhmt\Debug"
+				CommandArguments="-hrm -zxh -d zxhrum"
 				Attach="false"
 				DebuggerType="3"
 				Remote="1"

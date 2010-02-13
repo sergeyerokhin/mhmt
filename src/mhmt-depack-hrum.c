@@ -117,6 +117,9 @@ NO_BYTE_HRM:
 			if( 0xFFFFFFFF == byte ) goto NO_BYTE_HRM;
 #endif
 
+#ifdef DBG
+			printf("\n");
+#endif
 #ifdef DPK_DEPACK
 			success = success && depack_outbyte( (UBYTE)(0x00FF&byte), DEPACK_OUTBYTE_ADD );
 #endif
@@ -172,109 +175,99 @@ WRONG_DISP_HRM:
 #endif
 				break;
 
+			default: // %010 or %011
 
-			case 0x02: // %010 - 3 bytes, -1..-256
-
-				byte = depack_getbyte(DEPACK_GETBYTE_NEXT);
-#ifdef DPK_CHECK
-				if( 0xFFFFFFFF == byte ) goto NO_BYTE_HRM;
-#endif
-
-				disp = (-256) | (0x00FF&byte); // -1..-256
-#ifdef DPK_CHECK
-				if( (ULONG)(-disp) > wrk.maxwin ) goto WRONG_DISP_HRM;
-#endif
-
-#ifdef DPK_DEPACK
-				success = success && depack_repeat(disp,3);
-#endif
-				break;
-
-
-			case 0x03: // %011 - variable length
-
-				bits = depack_getbits(2,DEPACK_GETBITS_NEXT);
-#ifdef DPK_CHECK
-				if( 0xFFFFFFFF == bits ) goto NO_BITS_HRM;
-#endif
-				//  fetch len
-				if( bits == 0x00 ) // %01100<len>, if <len>==0 - stop
+				if( (bits&3)==2 ) // %010 - 3 bytes
 				{
-					length = depack_getbyte(DEPACK_GETBYTE_NEXT);
-#ifdef DPK_CHECK
-					if( 0xFFFFFFFF == length ) goto NO_BYTE_HRM;
-#endif
-					if( length == 0 ) stop = 1;
+					length = 3;
 				}
-				else if( bits == 0x01 ) // %01101 - len=4
-				{
-					length = 4;
-				}
-				else if( bits == 0x02 ) // %01110 - len=5
-				{
-					length = 5;
-				}
-				else // %01111
+				else // %011 - varlen
 				{
 					bits = depack_getbits(2,DEPACK_GETBITS_NEXT);
 #ifdef DPK_CHECK
 					if( 0xFFFFFFFF == bits ) goto NO_BITS_HRM;
 #endif
-					if( bits == 0x00 ) // %0111100
+					//  fetch len
+					if( bits == 0x00 ) // %01100<len>, if <len>==0 - stop
 					{
-						length = 6;
+						length = depack_getbyte(DEPACK_GETBYTE_NEXT);
+#ifdef DPK_CHECK
+						if( 0xFFFFFFFF == length ) goto NO_BYTE_HRM;
+#endif
+						if( length == 0 )
+							stop = 1;
 					}
-					else if( bits == 0x01 ) // %0111101
+					else if( bits == 0x01 ) // %01101 - len=4
 					{
-						length = 7;
+						length = 4;
 					}
-					else if( bits == 0x02 ) // %0111110
+					else if( bits == 0x02 ) // %01110 - len=5
 					{
-						length = 8;
+						length = 5;
 					}
-					else // %0111111
+					else // %01111
 					{
 						bits = depack_getbits(2,DEPACK_GETBITS_NEXT);
 #ifdef DPK_CHECK
 						if( 0xFFFFFFFF == bits ) goto NO_BITS_HRM;
 #endif
-						if( bits == 0x00 ) // %011111100
+						if( bits == 0x00 ) // %0111100
 						{
-							length = 9;
+							length = 6;
 						}
-						else if( bits == 0x01 ) // %011111101
+						else if( bits == 0x01 ) // %0111101
 						{
-							length = 10;
+							length = 7;
 						}
-						else if( bits == 0x02 ) // %011111110
+						else if( bits == 0x02 ) // %0111110
 						{
-							length = 11;
+							length = 8;
 						}
-						else // %011111111
+						else // %0111111
 						{
 							bits = depack_getbits(2,DEPACK_GETBITS_NEXT);
 #ifdef DPK_CHECK
 							if( 0xFFFFFFFF == bits ) goto NO_BITS_HRM;
 #endif
-							if( bits == 0x00 ) // %01111111100
+							if( bits == 0x00 ) // %011111100
 							{
-								length = 12;
+								length = 9;
 							}
-							else if( bits == 0x01 ) // %01111111101
+							else if( bits == 0x01 ) // %011111101
 							{
-								length = 13;
+								length = 10;
 							}
-							else if( bits == 0x02 ) // %01111111110
+							else if( bits == 0x02 ) // %011111110
 							{
-								length = 14;
+								length = 11;
 							}
-							else // %01111111111
+							else // %011111111
 							{
-								length = 15;
+								bits = depack_getbits(2,DEPACK_GETBITS_NEXT);
+#ifdef DPK_CHECK
+								if( 0xFFFFFFFF == bits ) goto NO_BITS_HRM;
+#endif
+								if( bits == 0x00 ) // %01111111100
+								{
+									length = 12;
+								}
+								else if( bits == 0x01 ) // %01111111101
+								{
+									length = 13;
+								}
+								else if( bits == 0x02 ) // %01111111110
+								{
+									length = 14;
+								}
+								else // %01111111111
+								{
+									length = 15;
+								}
 							}
 						}
 					}
 				}
+
 
 				// fetch disp and depack
 				if( !stop )
