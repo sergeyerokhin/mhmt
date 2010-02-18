@@ -368,9 +368,8 @@ void make_lz_codes_hrust(ULONG position, ULONG actual_len, UBYTE * hash, struct 
 
 
 
-
 	// check 3-byte insertion code (-1..-79)
-	if( position < (actual_len-2) )
+	if( (position < (actual_len-2)) )
 	{
 		i = (position>79) ? position-79 : 0;
 		do

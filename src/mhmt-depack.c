@@ -34,12 +34,12 @@ ULONG depack(void)
 		checker  = &checker_hrum;
 		depacker = &depacker_hrum;
 	}
-	else/* if( wrk.packtype==PK_HST )
+	else if( wrk.packtype==PK_HST )
 	{
-		check_  = &check_hrust;
-		depack_ = &depack_hrust;
+//		checker  = &checker_hrust;
+		depacker = &depacker_hrust;
 	}
-	else*/
+	else
 	{
 		printf("mhmt-depack.c:depack() - format unsupported!\n");
 		return 0;
@@ -63,7 +63,7 @@ ULONG depack(void)
 
 	success = success && emit_file(NULL,EMIT_FILE_INIT);
 
-	success = success && (*checker) ();
+//	success = success && (*checker) ();
 
 #ifdef DBG
 	printf("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
@@ -73,9 +73,9 @@ ULONG depack(void)
 
 	success = success && (*depacker)();
 
-	success = success && depack_outbyte( 0, DEPACK_OUTBYTE_FLUSH );
+	/*success = success && */depack_outbyte( 0, DEPACK_OUTBYTE_FLUSH );
 
-	success = success && emit_file(NULL,EMIT_FILE_FINISH);
+	/*success = success && */emit_file(NULL,EMIT_FILE_FINISH);
 
 
 
@@ -95,6 +95,8 @@ ULONG checker_megalz(void)
 #include "mhmt-depack-megalz.c"
 ULONG checker_hrum(void)
 #include "mhmt-depack-hrum.c"
+//ULONG checker_hrust(void)
+//#include "mhmt-depack-hrust.c"
 //
 // actually depacks without checkings
 #define DPK_DEPACK
@@ -104,6 +106,10 @@ ULONG depacker_megalz(void)
 #include "mhmt-depack-megalz.c"
 ULONG depacker_hrum(void)
 #include "mhmt-depack-hrum.c"
+#define  DPK_CHECK
+#define  DPK_REPERR
+ULONG depacker_hrust(void)
+#include "mhmt-depack-hrust.c"
 
 
 
@@ -253,6 +259,13 @@ ULONG depack_outbyte(UBYTE byte, ULONG operation)
 	if( operation==DEPACK_OUTBYTE_ADD )
 	{
 		buffer[buf_ptr++] = byte;
+
+
+		if( buf_ptr>0x500 )
+		{
+			printf("слом\n");
+		}
+
 
 		if( buf_ptr >= buf_size )
 		{
