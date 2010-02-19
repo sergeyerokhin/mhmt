@@ -213,6 +213,10 @@ NO_BYTE_HST:
 					}
 					else if( byte==0x00FE ) // expand bitlen of expandable displacement
 					{
+						#ifdef DBG
+							printf("expansion\n");
+						#endif
+
 						length = 0; // nothing to do
 						expbitlen++;
 #ifdef DPK_CHECK
@@ -443,7 +447,7 @@ NO_BYTE_HST:
 					bits = depack_getbits(5,DEPACK_GETBITS_NEXT);
 #ifdef DPK_CHECK
 					if( 0xFFFFFFFF == bits ) goto NO_BITS_HST;
-#endif                                                                                  i
+#endif
 					disp = (-32) | (bits&31);
 
 					break;
@@ -474,6 +478,9 @@ WRONG_DISP_HST:
 
 			if( docopy && (!stop) )
 			{
+				#ifdef DBG
+					printf("copy.len=%d\n",length);
+				#endif
 				for(i=0;i<length;i++)
 				{
 					byte = depack_getbyte(DEPACK_GETBYTE_NEXT);
@@ -491,8 +498,12 @@ WRONG_DISP_HST:
 			{
 				if( length!=(-3) )
 				{
+					#ifdef DBG
+						printf("match.len=%d,disp=%d\n",length,disp);
+					#endif
+
 #ifdef DPK_DEPACK
-				success = success && depack_repeat(disp,length);
+					success = success && depack_repeat(disp,length);
 #endif
 				}
 				else // ==(-3)
@@ -501,6 +512,9 @@ WRONG_DISP_HST:
 #ifdef DPK_CHECK
 					if( 0xFFFFFFFF == byte ) goto NO_BYTE_HST;
 #endif
+					#ifdef DBG
+						printf("insert-match.len=%d,disp=%d\n",(-length),disp);
+					#endif
 
 
 #ifdef DPK_DEPACK

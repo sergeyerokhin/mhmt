@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include "mhmt-types.h"
 
-//#define DBG
+#define DBG
 
 
 // packer/depacker type constants, used in struct global

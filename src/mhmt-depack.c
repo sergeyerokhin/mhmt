@@ -65,9 +65,9 @@ ULONG depack(void)
 
 //	success = success && (*checker) ();
 
-#ifdef DBG
-	printf("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
-#endif
+//#ifdef DBG
+//	printf("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+//#endif
 
 
 
@@ -133,9 +133,9 @@ ULONG depack_getbyte(ULONG operation)
 	{
 		if( position < wrk.inlen )
 		{
-#ifdef DBG
-			printf("<%02x>", wrk.indata[position]);
-#endif
+//#ifdef DBG
+//			printf("<%02x>", wrk.indata[position]);
+//#endif
 			return (ULONG)wrk.indata[position++];
 		}
 	}
@@ -185,9 +185,9 @@ ULONG depack_getbits(ULONG numbits, ULONG operation)
 				}
 			}
 
-#ifdef DBG
-			printf("%d",bits>>31);
-#endif
+//#ifdef DBG
+//			printf("%d",bits>>31);
+//#endif
 			fetched_bits = ( fetched_bits<<1 ) | ( 1&(bits>>31) );
 			bits <<= 1;
 			num_bits_left--;
@@ -261,7 +261,7 @@ ULONG depack_outbyte(UBYTE byte, ULONG operation)
 		buffer[buf_ptr++] = byte;
 
 
-		if( buf_ptr>0x500 )
+		if( buf_ptr>0x518 )
 		{
 			printf("слом\n");
 		}
@@ -296,9 +296,9 @@ ULONG depack_repeat(LONG disp, ULONG length)
 	ULONG back_ptr;
 	ULONG success=1;
 
-#ifdef DBG
-	printf("\n");
-#endif
+//#ifdef DBG
+//	printf("\n");
+//#endif
 
 
 	// in a self-consistent system, these three errors should never appear, since there is input stream check before actual depacking

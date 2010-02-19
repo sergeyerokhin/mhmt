@@ -393,6 +393,10 @@ ULONG emit_hrust(struct optchain * optch, ULONG actual_len)
 
 	while( (position<actual_len) && success )
 	{
+		#ifdef DBG
+			printf("%04x:",position);
+		#endif
+
 		length = optch[position].code.length;
 		disp   = optch[position].code.disp;
 
@@ -499,6 +503,42 @@ ULONG emit_hrust(struct optchain * optch, ULONG actual_len)
 		}
 		else if (3<=length && length<=3839 && (-65536)<=disp && disp<=(-1) )
 		{
+			// first see if we need emitting expansion codes
+
+				//  -513.. -1024  (FDFF..FC00) - 2 bits
+				//  -1025..-2048  (FBFF..F800) - 3
+				//  -2049..-4096  (F7FF..F000) - 4
+				//  -4097..-8192  (EFFF..E000) - 5
+				//  -8193..-16384 (DFFF..C000) - 6
+				// -16385..-32768 (BFFF..8000) - 7
+				// -32769..-65536 (7FFF..0000) - 8
+			if( disp<(-512) )
+			{
+				varbits = 1024;
+				varlen  = 2;
+				while( (ULONG)(-disp) > varbits )
+				{
+					varbits <<= 1;
+					varlen++;
+				}
+
+				// emit expansion codes, if necessary: %00110<FE>
+				while( varlen>expbitlen )
+				{
+					success = success && emit_bits( 0x30000000, 5 );
+					success = success && emit_byte( 0x00FE, EMIT_BYTE_ADD );
+					#ifdef DBG
+						printf("expansion\n");
+					#endif
+
+					expbitlen++;
+				}
+			}
+
+
+
+
+
 			// emit length
 
 			if( length<=15 ) // 3..15
@@ -551,34 +591,8 @@ ULONG emit_hrust(struct optchain * optch, ULONG actual_len)
 			}
 			else // variable code length: [-65536..-512)
 			{
-				//  -513.. -1024  (FDFF..FC00) - 2 bits
-				//  -1025..-2048  (FBFF..F800) - 3
-				//  -2049..-4096  (F7FF..F000) - 4
-				//  -4097..-8192  (EFFF..E000) - 5
-				//  -8193..-16384 (DFFF..C000) - 6
-				// -16385..-32768 (BFFF..8000) - 7
-				// -32769..-65536 (7FFF..0000) - 8
-
-				// determine current displacement length
-				varbits = 1024;
-				varlen  = 2;
-				while( (ULONG)(-disp) > varbits )
-				{
-					varbits <<= 1;
-					varlen++;
-				}
-
-				// emit expansion codes, if necessary: %00110<FE>
-				while( varlen>expbitlen )
-				{
-					success = success && emit_bits( 0x30000000, 5 );
-					success = success && emit_byte( 0xFE, EMIT_BYTE_ADD );
-
-					expbitlen++;
-				}
 
 				// displacement itself: %11ab[cdefgh]<byte>
-
 				success = success && emit_bits( 0xC0000000, 2 );
 				success = success && emit_bits( disp<<(24-expbitlen), expbitlen );
 				success = success && emit_byte( (UBYTE)(disp&0x00FF), EMIT_BYTE_ADD );
@@ -590,6 +604,22 @@ INVALID_CODE_HRUST:
 			printf("mhmt-emit.c:emit_hrust() - invalid code: length=%d, displacement=%d\n",length,disp);
 			return 0;
 		}
+
+		#ifdef DBG
+			if( length==(-3) )
+			{
+				printf("insert-match.len=%d,disp=%d\n",(-length),disp);
+			}
+			else if( disp==0 )
+			{
+				printf("copy.len=%d\n",length);
+			}
+			else
+			{
+				printf("match.len=%d,disp=%d\n",length,disp);
+			}
+		#endif
+
 
 		if( max_disp > disp ) max_disp = disp;
 
@@ -735,7 +765,11 @@ ULONG emit_byte(UBYTE byte, ULONG operation)
 
 	case EMIT_BYTE_ADD:
 
-                buffer[in_pos] = byte;
+		#ifdef DBG
+			printf("<%02x>",byte&0x00FF);
+		#endif
+
+		buffer[in_pos] = byte;
 
 		in_pos = (in_pos+1) & (EMIT_BYTEBUF_SIZE-1);
 
@@ -825,6 +859,9 @@ ULONG emit_bits(ULONG msb_aligned_bits, LONG length)
 				}
 			}
 
+			#ifdef DBG
+				printf("%d",1&(msb_aligned_bits>>31));
+			#endif
 			bit_store = (bit_store<<1) | ( 1 & (msb_aligned_bits>>31) );
 			msb_aligned_bits <<= 1;
 			bit_count++;

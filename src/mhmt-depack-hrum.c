@@ -117,9 +117,6 @@ NO_BYTE_HRM:
 			if( 0xFFFFFFFF == byte ) goto NO_BYTE_HRM;
 #endif
 
-#ifdef DBG
-			printf("\n");
-#endif
 #ifdef DPK_DEPACK
 			success = success && depack_outbyte( (UBYTE)(0x00FF&byte), DEPACK_OUTBYTE_ADD );
 #endif

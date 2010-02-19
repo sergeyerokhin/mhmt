@@ -11,7 +11,7 @@
 			<DebugSettings
 				Command="$(TargetPath)"
 				WorkingDirectory="D:\d\mhmt\win32\mhmt\Debug"
-				CommandArguments="-hst -d none.txt.hst"
+				CommandArguments="-hst none.txt none.hst"
 				Attach="false"
 				DebuggerType="3"
 				Remote="1"
