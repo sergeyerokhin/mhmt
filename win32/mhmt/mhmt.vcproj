@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="windows-1251"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="9.00"
+	Version="9,00"
 	Name="mhmt"
 	ProjectGUID="{9D9BD82F-2D38-4962-B157-EBD04BFBBB54}"
 	RootNamespace="mhmt"
@@ -47,7 +47,7 @@
 				StringPooling="false"
 				MinimalRebuild="false"
 				ExceptionHandling="0"
-				BasicRuntimeChecks="0"
+				BasicRuntimeChecks="3"
 				SmallerTypeCheck="false"
 				RuntimeLibrary="3"
 				EnableEnhancedInstructionSet="0"

@@ -261,9 +261,9 @@ ULONG depack_outbyte(UBYTE byte, ULONG operation)
 		buffer[buf_ptr++] = byte;
 
 
-		if( buf_ptr>0x518 )
+		if( buf_ptr>0x51d )
 		{
-			printf("слом\n");
+//			printf("слом\n");
 		}
 
 

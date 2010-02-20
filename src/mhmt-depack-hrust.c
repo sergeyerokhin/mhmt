@@ -206,10 +206,11 @@ NO_BYTE_HST:
 #ifdef DPK_CHECK
 					if( 0xFFFFFFFF == byte ) goto NO_BYTE_HST;
 #endif
+					skipdisp = 1;
+
 					if( byte<0x00E0 ) // ff00..ffdf
 					{
 						disp = (-256) | (byte&0x00FF);
-						skipdisp = 1;
 					}
 					else if( byte==0x00FE ) // expand bitlen of expandable displacement
 					{
@@ -238,8 +239,6 @@ NO_BYTE_HST:
 						byte -= 15;
 
 						disp = (-256) | (byte&0x00FF);
-
-						skipdisp = 1;
 					}
 					break;
 
@@ -438,7 +437,7 @@ NO_BYTE_HST:
 					}
 					else
 					{
-						disp = disp + (byte&0x00FF);
+ 						disp = disp + (byte&0x00FF);
 					}
 
 					break;
@@ -465,7 +464,7 @@ NO_BYTE_HST:
 
 
 #ifdef DPK_CHECK
-			if( (!stop) && ((ULONG)(-disp)>wrk.maxwin) && (!docopy) && success )
+			if( success && (!docopy) && (!stop) && ((ULONG)(-disp)>wrk.maxwin) )
 			{
 WRONG_DISP_HST:
  #ifdef DPK_REPERR
@@ -503,10 +502,11 @@ WRONG_DISP_HST:
 					#endif
 
 #ifdef DPK_DEPACK
-					success = success && depack_repeat(disp,length);
+					if( length )
+						success = success && depack_repeat(disp,length);
 #endif
 				}
-				else // ==(-3)
+				else // (-3)
 				{
 					byte = depack_getbyte(DEPACK_GETBYTE_NEXT);
 #ifdef DPK_CHECK
