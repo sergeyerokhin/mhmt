@@ -276,7 +276,7 @@ NO_BYTE_HST:
 				bits = depack_getbits(2,DEPACK_GETBITS_NEXT);
 #ifdef DPK_CHECK
 				if( 0xFFFFFFFF == bits ) goto NO_BITS_HST;
-#endif                                                                                  i
+#endif                                                                                 
 				switch( bits&3 )
 				{
 				case 0: // special cases
@@ -353,7 +353,7 @@ NO_BYTE_HST:
 						bits = depack_getbits(2,DEPACK_GETBITS_NEXT);
 #ifdef DPK_CHECK
 						if( 0xFFFFFFFF == bits ) goto NO_BITS_HST;
-#endif                                                                                  i
+#endif                                                                                  
 						bits &= 3;
 						length += bits;
 
@@ -373,7 +373,7 @@ NO_BYTE_HST:
 					bits = depack_getbits(2,DEPACK_GETBITS_NEXT);
 #ifdef DPK_CHECK
 					if( 0xFFFFFFFF == bits ) goto NO_BITS_HST;
-#endif                                                                                  i
+#endif                                                                                  
 					bits &= 3;
 					if( !bits ) // %00<byte> - fe00..feff
 					{
@@ -392,7 +392,7 @@ NO_BYTE_HST:
 						bits = depack_getbits(5,DEPACK_GETBITS_NEXT);
 #ifdef DPK_CHECK
 						if( 0xFFFFFFFF == bits ) goto NO_BITS_HST;
-#endif                                                                                  i
+#endif                                                                                  
 						disp = (-32) | (bits&31);
 
 						break;
@@ -402,7 +402,7 @@ NO_BYTE_HST:
 						bits = depack_getbits(expbitlen,DEPACK_GETBITS_NEXT);
 #ifdef DPK_CHECK
 						if( 0xFFFFFFFF == bits ) goto NO_BITS_HST;
-#endif                                                                                  i
+#endif                                                                                  
 						disp = (-1)<<expbitlen;
 						disp |= (bits&(~disp));
 

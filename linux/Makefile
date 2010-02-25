@@ -47,7 +47,7 @@ mhmt-parsearg.o: ../src/mhmt-parsearg.c ../src/mhmt-types.h ../src/mhmt-globals.
 mhmt-tb.o: ../src/mhmt-tb.c ../src/mhmt-types.h ../src/mhmt-globals.h ../src/mhmt-tb.h
 	${CC} ${CFLAGS} -c $<
 
-mhmt-depack.o: ../src/mhmt-depack.c ../src/mhmt-types.h ../src/mhmt-globals.h ../src/mhmt-depack.h ../src/mhmt-depack-megalz.c ../src/mhmt-depack-hrum.c
+mhmt-depack.o: ../src/mhmt-depack.c ../src/mhmt-types.h ../src/mhmt-globals.h ../src/mhmt-depack.h ../src/mhmt-depack-megalz.c ../src/mhmt-depack-hrum.c ../src/mhmt-depack-hrust.c
 	${CC} ${CFLAGS} -c $<
 
 %.s: %.o
