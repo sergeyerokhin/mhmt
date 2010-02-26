@@ -17,10 +17,6 @@ ULONG pack(void)
 {
 
 
-	// some format-specific function pointers
-	void (*make_lz_codes)(ULONG position, ULONG actual_len, UBYTE * hash, struct lzcode * codes) = NULL; // searches for all
-	                                                                                                     // possible lz codes
-
 	ULONG (*get_lz_price)(ULONG position, struct lzcode * lzcode) = NULL; // generates correct bitlen (price) of code
 
 	ULONG (*emit)(struct optchain * optch, ULONG actual_len) = NULL; // emits lzcode to the output bit/byte stream
@@ -47,19 +43,16 @@ ULONG pack(void)
 	//
 	if( wrk.packtype==PK_MLZ )
 	{
-		make_lz_codes = &make_lz_codes_megalz;
 		get_lz_price  = &get_lz_price_megalz;
 		emit          = &emit_megalz;
 	}
 	else if( wrk.packtype==PK_HRM )
 	{
-		make_lz_codes = &make_lz_codes_hrum;
 		get_lz_price  = &get_lz_price_hrum;
 		emit          = &emit_hrum;
 	}
 	else if( wrk.packtype==PK_HST )
 	{
-		make_lz_codes = &make_lz_codes_hrust;
 		get_lz_price  = &get_lz_price_hrust;
 		emit          = &emit_hrust;
 	}
@@ -134,7 +127,7 @@ ULONG pack(void)
 				}
 
 				// search lzcodes for given position
-				(*make_lz_codes)(position, actual_len, hash, codes);
+				make_lz_codes(position, actual_len, hash, codes);
 
 				// update optimal chain with lzcodes
 				update_optch(position, codes, get_lz_price, optch);
