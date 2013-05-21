@@ -352,6 +352,8 @@ ULONG emit_hrust(struct optchain * optch, ULONG actual_len)
 
 	ULONG expbitlen = 2; // expandable match: bitlength of displacement
 
+	ULONG flen; 
+	
 
 	max_disp = 0;
 
@@ -635,6 +637,26 @@ INVALID_CODE_HRUST:
 	success = success && emit_bits( 0, EMIT_BITS_FINISH ); // this also flushes emit_byte()
 	success = success && emit_file( NULL, EMIT_FILE_FINISH );
 
+	// complete the header
+	if( success && wrk.zxheader )
+	{
+		success = success && ( (-1L) != (flen = ftell(wrk.file_out)) ); //filesize
+		
+		success = success && !fseek(wrk.file_out, 4, SEEK_SET); // pos to 4th byte
+		
+		wrlen[0] = flen&255;
+		wrlen[1] = (flen>>8)&255;
+		// write len
+		success = success && ( 2==fwrite(wrlen, 1, 2, wrk.file_out) );
+		
+		if( !success )
+		{
+			printf("emit_hrust(): failed to write packed length to header!\n");
+			return 0;
+		}
+	}
+	
+	
 	if( success )
 	{
 		printf("Maximum displacement actually used is %d.\n",-max_disp);
