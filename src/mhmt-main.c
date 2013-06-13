@@ -1,6 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
 
 #include "mhmt-types.h"
 #include "mhmt-globals.h"
@@ -48,7 +52,7 @@ int main( int argc, char* argv[] )
 			dump_config();
 			if( wrk.mode )
 			{
-				error += depack() ? 0 : 1;
+			error += depack() ? 0 : 1;
 			}
 			else
 			{
@@ -70,33 +74,38 @@ int main( int argc, char* argv[] )
 
 void show_help(void)
 {
-	printf("======== mhmt help ========\n");
-	printf("parameters:\n");
-	printf("-mlz, -hrm, -hst - use MegaLZ, hrum3.5 or hrust1.x format (default is MegaLZ)\n");
-	printf("-g - greedy coding (default is optimal coding)\n");
-	printf("-d - depacking instead of packing (default is packing)\n");
-	printf("\n");
-	printf("-zxh - use zx-specific header for hrum or hrust. DEFAULT is NO HEADER!\n");
-	printf("       Not applicable for MegaLZ. If -zxh is specified, -16, NO -bend and\n");
-	printf("       NO -mlz is forced.\n");
-	printf("\n");
-	printf("-8, -16 - bitstream is in bytes or words in packed file.\n");
-	printf("          Default for MegaLZ is -8, for hrum and hrust is -16.\n");
-	printf("\n");
-	printf("-bend - if -16 specified, this makes words big-endian. Default is little-endian.\n");
-	printf("\n");
-	printf("-maxwinN - maximum lookback window. N is decimal number, which can only be\n");
-	printf("           256,512,1024,2048,4096,8192,16384,32768. Default is format-specific\n");
-	printf("           maximum window: MegaLZ is 4352, hrum is 4096, hrust is 65536.\n");
-	printf("           For given format, window can't be greater than default value\n");
-	printf("\n");
-	printf("usage:\n");
-	printf("mhmt [parameter list] <input filename> [<output filename>]\n");
-	printf("\n");
-	printf("if no output filename given, filename is appended with \".mlz\", \".hrm\" or \".hst\"\n");
-	printf("in accordance with format chosen; for depacking \".dpk\" is appended\n");
-	printf("====== mhmt help end ======\n");
-	printf("\n");
+	printf
+	(
+		"======== mhmt help ========\n"
+		"parameters:\n"
+		"-mlz, -hrm, -hst - use MegaLZ, hrum3.5 or hrust1.x format (default is MegaLZ)\n"
+		"-g - greedy coding (default is optimal coding)\n"
+		"-d - depacking instead of packing (default is packing)\n"
+		"\n"
+		"-zxh - use zx-specific header for hrum or hrust. DEFAULT is NO HEADER!\n"
+		"       Not applicable for MegaLZ. If -zxh is specified, -16, NO -bend and\n"
+		"       NO -mlz is forced.\n"
+		"\n"
+		"-8, -16 - bitstream is in bytes or words in packed file.\n"
+		"          Default for MegaLZ is -8, for hrum and hrust is -16.\n"
+		"\n"
+		"-bend - if -16 specified, this makes words big-endian. Default is little-endian.\n"
+		"\n"
+		"-maxwinN - maximum lookback window. N is decimal number, which can only be\n"
+		"           256,512,1024,2048,4096,8192,16384,32768. Default is format-specific\n"
+		"           maximum window: MegaLZ is 4352, hrum is 4096, hrust is 65536.\n"
+		"           For given format, window can't be greater than default value\n"
+		"\n"
+		"-prebin <filename> - use specified file as prebinary for packing and depacking.\n"
+		"\n"
+		"usage:\n"
+		"mhmt [parameter list] <input filename> [<output filename>]\n"
+		"\n"
+		"if no output filename given, filename is appended with \".mlz\", \".hrm\" or \".hst\"\n"
+		"in accordance with format chosen; for depacking \".dpk\" is appended\n"
+		"====== mhmt help end ======\n"
+		"\n"
+	);
 }
 
 void dump_config(void)
@@ -172,6 +181,15 @@ void dump_config(void)
 	printf("Input file \"%s\" (%d bytes) successfully loaded.\n", wrk.fname_in, wrk.inlen);
 	printf("Output file \"%s\" created.\n", wrk.fname_out );
 
+	// prebin file
+	if( wrk.prebin )
+	{
+		printf("Prebinary file \"%s\" (%d bytes) successfully loaded.\n", wrk.fname_prebin, wrk.prelen);
+	}
+	else
+	{
+		printf("No prebinary file specified.\n");
+	}
 //	...more info...?
 }
 
@@ -182,6 +200,8 @@ ULONG do_files(void)
 	char * pack_ext;
 	char * depk_ext;
 	LONG ext_pos;
+
+	struct stat stfile;
 
 
 	// if there is no output filename, create it
@@ -226,7 +246,6 @@ ULONG do_files(void)
 
 	//open files
 	wrk.file_in=fopen(wrk.fname_in,"rb");
-
 	if(!wrk.file_in)
 	{
 		printf("Cannot open input file \"%s\"!\n",wrk.fname_in);
@@ -240,8 +259,19 @@ ULONG do_files(void)
 		return 0;
 	}
 
+	if( wrk.prebin )
+	{
+		wrk.file_prebin = fopen(wrk.fname_prebin,"rb");
+		if(!wrk.file_prebin)
+		{
+			printf("Cannot open prebinary file \"%s\"!\n",wrk.fname_prebin);
+			return 0;
+		}
+	}
 
-	// get length of input file
+
+
+	// get lengths of files
 	if( fseek(wrk.file_in,0,SEEK_END) )
 	{
 		printf("Cannot fseek() input file \"%s\"!\n",wrk.fname_in);
@@ -265,20 +295,48 @@ ULONG do_files(void)
 		return 0;
 	}
 
+	if( wrk.prebin )
+	{
+		if( fstat( fileno(wrk.file_prebin), &stfile ) )
+		{
+			printf("Cannot fstat() prebin file \"%s\"\n",wrk.fname_prebin);
+			return 0;
+		}
 
-	// load input file in mem
+		wrk.prelen = (ULONG)stfile.st_size;
+	}
+
+
+
+	// load files in mem
 	wrk.indata=(UBYTE *)malloc(wrk.inlen);
 	if( !wrk.indata )
 	{
 		printf("Cannot allocate %d bytes of memory for loading input file \"%s\"!\n", wrk.inlen, wrk.fname_in);
 		return 0;
 	}
-
 	if( wrk.inlen!=fread(wrk.indata,1,wrk.inlen,wrk.file_in) )
 	{
 		printf("Cannot successfully load input file \"%s\" in memory!\n",wrk.fname_in);
 		return 0;
 	}
+
+	if( wrk.prebin )
+	{
+		wrk.predata=(UBYTE *)malloc(wrk.prelen);
+		if( !wrk.predata )
+		{
+			printf("Cannot allocate %d bytes of memory for loading prebin file \"%s\"!\n", wrk.prelen, wrk.fname_prebin);
+			return 0;
+		}
+
+		if( wrk.prelen!=fread(wrk.predata,1,wrk.prelen,wrk.file_prebin) )
+		{
+			printf("Cannot successfully load prebin file \"%s\" in memory!\n",wrk.fname_prebin);
+			return 0;
+		}
+	}
+
 
 
 	return 1;// no errors

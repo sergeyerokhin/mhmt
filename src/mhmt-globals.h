@@ -43,14 +43,22 @@ struct globals
 	ULONG maxwin; // maximum window (or lookback), positive number, which is one of:
 	             // 256,512,1024,2048,4096,4352,8192,16384,32768 or 65536
 
+	ULONG prebin; // nonzero if pre-binary file is specified in arguments
+
+
 	char * fname_in;
 	char * fname_out;
+	char * fname_prebin; // filename of prebin file
 
 	FILE * file_in;
 	FILE * file_out;
+	FILE * file_prebin;
 
 	UBYTE * indata;
 	ULONG inlen;
+
+	UBYTE * predata;
+	ULONG prelen;
 };
 
 

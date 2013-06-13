@@ -640,7 +640,7 @@ INVALID_CODE_HRUST:
 	// complete the header
 	if( success && wrk.zxheader )
 	{
-		success = success && ( (-1L) != (flen = ftell(wrk.file_out)) ); //filesize
+		success = success && ( (0xFFFFFFFF) != (flen = ftell(wrk.file_out)) ); //filesize
 		
 		success = success && !fseek(wrk.file_out, 4, SEEK_SET); // pos to 4th byte
 		

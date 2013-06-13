@@ -3,21 +3,22 @@ NAME            = mhmt
 OBJECTS         = mhmt-emit.o mhmt-globals.o mhmt-hash.o mhmt-lz.o mhmt-main.o mhmt-optimal.o mhmt-pack.o mhmt-parsearg.o mhmt-tb.o mhmt-depack.o
 SRCS            = mhmt-emit.s mhmt-globals.s mhmt-hash.s mhmt-lz.s mhmt-main.s mhmt-optimal.s mhmt-pack.s mhmt-parsearg.s mhmt-tb.s mhmt-depack.s
 
-CFLAGS          = -m32 -Os -Wextra -g
+CFLAGS          = -Os -Wextra -g
 
 #switch the compiler (for the internal make rules)
 CC              = gcc
 DA		= objdump -dS
 
 #all should be the first target. it's built when make is runwithout args
-all: ${NAME} ${SRCS}
+all: ${NAME} #${SRCS}
 
 #additional rules for files
 ${NAME}: ${OBJECTS}
 	${CC} ${CFLAGS} -o $@ ${OBJECTS}
 
 clean:
-	rm -f ${NAME} ${OBJECTS} ${SRCS}
+#	rm -f ${NAME} ${OBJECTS} ${SRCS}
+	rm -f ${NAME} ${OBJECTS}
 
 #project dependencies
 mhmt-emit.o: ../src/mhmt-emit.c ../src/mhmt-types.h ../src/mhmt-globals.h ../src/mhmt-lz.h ../src/mhmt-optimal.h ../src/mhmt-emit.h
@@ -50,6 +51,6 @@ mhmt-tb.o: ../src/mhmt-tb.c ../src/mhmt-types.h ../src/mhmt-globals.h ../src/mhm
 mhmt-depack.o: ../src/mhmt-depack.c ../src/mhmt-types.h ../src/mhmt-globals.h ../src/mhmt-depack.h ../src/mhmt-depack-megalz.c ../src/mhmt-depack-hrum.c ../src/mhmt-depack-hrust.c
 	${CC} ${CFLAGS} -c $<
 
-%.s: %.o
-	${DA} $< >$@
+#%.s: %.o
+#	${DA} $< >$@
 

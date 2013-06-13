@@ -9,33 +9,35 @@
 
 struct argtbl default_arg_table[] =
 {
-	{"d", ARG_MODE},
+	{"d",            ARG_MODE,   NULL},
 
-	{"g", ARG_GREEDY},
+	{"g",            ARG_GREEDY, NULL},
 
-	{ARGSTR_MEGALZ, ARG_PTYPE},
-	{ARGSTR_HRUM,   ARG_PTYPE},
-	{ARGSTR_HRUST,  ARG_PTYPE},
+	{ARGSTR_MEGALZ,  ARG_PTYPE,  NULL},
+	{ARGSTR_HRUM,    ARG_PTYPE,  NULL},
+	{ARGSTR_HRUST,   ARG_PTYPE,  NULL},
 
-	{"zxh", ARG_ZXHEAD},
+	{"zxh",          ARG_ZXHEAD, NULL},
 
-	{ARGSTR_8,  ARG_WORD},
-	{ARGSTR_16, ARG_WORD},
+	{ARGSTR_8,       ARG_WORD,   NULL},
+	{ARGSTR_16,      ARG_WORD,   NULL},
 
-	{"bend", ARG_BIGEND},
+	{"bend",         ARG_BIGEND, NULL},
 
-	{ARGSTR_MW256,   ARG_MAXWIN},
-	{ARGSTR_MW512,   ARG_MAXWIN},
-	{ARGSTR_MW1024,  ARG_MAXWIN},
-	{ARGSTR_MW2048,  ARG_MAXWIN},
-	{ARGSTR_MW4096,  ARG_MAXWIN},
-	{ARGSTR_MW4352,  ARG_MAXWIN},
-	{ARGSTR_MW8192,  ARG_MAXWIN},
-	{ARGSTR_MW16384, ARG_MAXWIN},
-	{ARGSTR_MW32768, ARG_MAXWIN},
-	{ARGSTR_MW65536, ARG_MAXWIN},
+	{ARGSTR_MW256,   ARG_MAXWIN, NULL},
+	{ARGSTR_MW512,   ARG_MAXWIN, NULL},
+	{ARGSTR_MW1024,  ARG_MAXWIN, NULL},
+	{ARGSTR_MW2048,  ARG_MAXWIN, NULL},
+	{ARGSTR_MW4096,  ARG_MAXWIN, NULL},
+	{ARGSTR_MW4352,  ARG_MAXWIN, NULL},
+	{ARGSTR_MW8192,  ARG_MAXWIN, NULL},
+	{ARGSTR_MW16384, ARG_MAXWIN, NULL},
+	{ARGSTR_MW32768, ARG_MAXWIN, NULL},
+	{ARGSTR_MW65536, ARG_MAXWIN, NULL},
 
-	{NULL,0}
+	{ARGSTR_PB,      ARG_PREBIN, NULL},
+
+	{NULL,           0,          NULL}
 };
 
 
@@ -65,8 +67,9 @@ ULONG parse_args(int argc, char* argv[])
 	ULONG i;
 	for(i=0;i<ARG_STORE_SIZE+1;i++)
 	{
-		argstore[i].name = NULL;
-		argstore[i].type = ARG_NOARG;
+		argstore[i].name  = NULL;
+		argstore[i].fname = NULL;
+		argstore[i].type  = ARG_NOARG;
 	}
 
 
@@ -97,7 +100,29 @@ ULONG parse_args(int argc, char* argv[])
 				return ARG_PARSER_ERROR|ARG_PARSER_SHOWHELP;
 			}
 
-			argstore[storearg_pos++] = *arg;
+			argstore[storearg_pos] = *arg;
+
+			if( arg->type == ARG_PREBIN )
+			{
+				if( inarg_pos>=(ULONG)(argc-1) )
+				{
+					printf("\"-prebin\" has no filename!\n");
+					return ARG_PARSER_ERROR|ARG_PARSER_SHOWHELP;
+				}
+
+				inarg_pos++;
+				
+				argstore[storearg_pos].fname = (char *)malloc( 1+strlen(argv[inarg_pos]) );
+				if( !argstore[storearg_pos].fname )
+				{
+					printf("Cannot allocate memory for filename string!\n");
+					return ARG_PARSER_ERROR;
+				}
+
+				strcpy( argstore[storearg_pos].fname, argv[inarg_pos] );
+			}
+
+			storearg_pos++;
 		}
 		else // argument does not match predefined set
 		{
@@ -267,6 +292,11 @@ ULONG parse_args(int argc, char* argv[])
 				return ARG_PARSER_ERROR;
 			}
 			wrk.maxwin = maxwin;
+			break;
+
+		case ARG_PREBIN:
+			wrk.prebin = 1;
+			wrk.fname_prebin = argstore[storearg_pos].fname;
 			break;
 
 		default:

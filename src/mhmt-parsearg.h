@@ -26,6 +26,8 @@
 #define ARGSTR_MW32768 "maxwin32768"
 #define ARGSTR_MW65536 "maxwin65536"
 
+#define ARGSTR_PB "prebin"
+
 //argument types
 #define ARG_INIT    0 // not to be placed in srgtbl.type!
 #define ARG_MODE    1 // pack/depack
@@ -35,6 +37,7 @@
 #define ARG_WORD    5
 #define ARG_BIGEND  6
 #define ARG_MAXWIN  7
+#define ARG_PREBIN  8 // name of prebinary
 #define ARG_NOARG 255 // just top-fill value for argstore[]
 
 
@@ -43,12 +46,13 @@ struct argtbl
 {
 	char * name;
 	ULONG type;
+	char * fname;
 };
 
 
 
 // size of temporary argument storing array in parse_args()
-#define ARG_STORE_SIZE 16
+#define ARG_STORE_SIZE 17
 
 // return bit values for parse_args()
 // possible combinations:
