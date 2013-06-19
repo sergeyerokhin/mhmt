@@ -20,7 +20,7 @@ struct optchain
 
 struct optchain * make_optch(ULONG actual_len);
 
-void update_optch(ULONG position, struct lzcode * codes, ULONG (*get_lz_price)(ULONG position, struct lzcode * lzcode), struct optchain * optch);
+void update_optch(ULONG position, struct lzcode * codes, ULONG (*get_lz_price)(OFFSET position, struct lzcode * lzcode), struct optchain * optch);
 
 void reverse_optch(struct optchain * optch, ULONG actual_len);
 

@@ -54,10 +54,11 @@ struct globals
 	FILE * file_out;
 	FILE * file_prebin;
 
-	UBYTE * indata;
+	UBYTE * indata;     // to use in normal depacking process -- begins from input file data
+	UBYTE * indata_raw; // to pre-parse prebin file or to free() array -- begins from prebin file if any or from input file (if no prebin)
+
 	ULONG inlen;
 
-	UBYTE * predata;
 	ULONG prelen;
 };
 

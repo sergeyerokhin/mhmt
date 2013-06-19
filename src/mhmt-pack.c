@@ -17,7 +17,7 @@ ULONG pack(void)
 {
 
 
-	ULONG (*get_lz_price)(ULONG position, struct lzcode * lzcode) = NULL; // generates correct bitlen (price) of code
+	ULONG (*get_lz_price)(OFFSET position, struct lzcode * lzcode) = NULL; // generates correct bitlen (price) of code
 
 	ULONG (*emit)(struct optchain * optch, ULONG actual_len) = NULL; // emits lzcode to the output bit/byte stream
 
@@ -36,7 +36,7 @@ ULONG pack(void)
 
 	UBYTE curr_byte, last_byte;
 	UWORD index;
-	ULONG position;
+	OFFSET position;
 
 
 	// some preparations
@@ -85,7 +85,7 @@ ULONG pack(void)
         // initializations and preparations
 	init_tb();
 
-	hash = build_hash(wrk.indata, actual_len);
+	hash = build_hash(wrk.indata, actual_len, wrk.prelen);
 	if( !hash )
 	{
 		printf("mhmt-pack.c:pack() - build_hash() failed!\n");
@@ -106,6 +106,27 @@ ULONG pack(void)
 	// go packing!
 	if( success )
 	{
+		// fill TBs with prebinary date
+		if( wrk.prebin )
+		{
+			curr_byte=wrk.indata[0LL-wrk.prelen];
+			//
+			for(position=(1LL-wrk.prelen);position<=0;position++)
+			{
+				last_byte = curr_byte;
+				curr_byte = wrk.indata[position];
+
+				index = (last_byte<<8) + curr_byte;
+				
+				if( !add_tb(index,position) )
+				{
+					printf("mhmt-pack.c:pack() - add_tb() failed!\n");
+					success = 0;
+					goto ERROR;
+				}
+			}
+		}
+
 		if( !wrk.greedy ) // default optimal coding
 		{
 			// go generating lzcodes byte-by-byte
@@ -154,7 +175,7 @@ ULONG pack(void)
 ERROR:
 	free_optch(optch);
 
-	destroy_hash(hash);
+	destroy_hash(hash, wrk.prelen);
 
 	return success;
 }

@@ -26,10 +26,11 @@ void init_globals(void)
 	wrk.file_out    = NULL;
 	wrk.file_prebin = NULL;
 
-	wrk.indata = NULL;
+	wrk.indata     = NULL;
+	wrk.indata_raw = NULL;
+	
 	wrk.inlen  = 0;
 
-	wrk.predata = NULL;
 	wrk.prelen  = 0;
 }
 
@@ -38,8 +39,7 @@ void init_globals(void)
 // free all stuff from wrk container
 void free_globals(void)
 {
-	if( wrk.indata  ) free( wrk.indata  );
-	if( wrk.predata ) free( wrk.predata );
+	if( wrk.indata_raw ) free( wrk.indata_raw );
 
 	if( wrk.file_out    ) fclose( wrk.file_out    );
 	if( wrk.file_in     ) fclose( wrk.file_in     );

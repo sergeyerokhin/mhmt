@@ -12,7 +12,7 @@ extern struct tb_chain * tb_entry[];
 // chained two-byter element: pos is position in input file
 struct tb_chain
 {
-	ULONG pos;
+	OFFSET pos;
 	struct tb_chain * next;
 };
 
@@ -32,8 +32,8 @@ struct tb_bunch
 
 void init_tb(void);
 void free_tb(void);
-ULONG add_tb(UWORD index, ULONG position);
-void cutoff_tb_chain(UWORD index,ULONG position);
+ULONG add_tb(UWORD index, OFFSET position);
+void cutoff_tb_chain(UWORD index,OFFSET position);
 ULONG add_bunch_of_tb(void);
 struct tb_chain * get_free_tb(void);
 

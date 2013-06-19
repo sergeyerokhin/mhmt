@@ -4,9 +4,11 @@
 
 
 #ifdef _AMIGA
-#include <exec/types.h>
+	#include <exec/types.h>
+	typedef signed int OFFSET;
 #else
-#define MHMT_OWNTYPES
+	#include <sys/types.h>
+	#define MHMT_OWNTYPES
 #endif
 
 
@@ -19,6 +21,8 @@ typedef unsigned short int UWORD;
 
 typedef         signed int  LONG;
 typedef       unsigned int ULONG;
+
+typedef off_t OFFSET; // this will be 32bit signed in 32bit systems and 64bit signed in 64bit linux, don't care of other 64bits yet...
 #endif
 
 #endif

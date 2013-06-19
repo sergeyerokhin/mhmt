@@ -47,7 +47,7 @@ void free_tb(void)
 // index=(prev<<8)+curr - index into tb_entry,
 // position - position in input file for 'curr' byte
 // returns zero if any error (cant allocate mem), otherwise 1
-ULONG add_tb(UWORD index, ULONG position)
+ULONG add_tb(UWORD index, OFFSET position)
 {
 	struct tb_chain * newtb;
 
@@ -55,7 +55,7 @@ ULONG add_tb(UWORD index, ULONG position)
 	if( !newtb )
 	{ // no free elements
 
-		if( position > wrk.maxwin ) // if there could be enough tbs to try to flush
+		if( (position+wrk.prelen) > (OFFSET)wrk.maxwin ) // if there could be enough tbs to try to flush
 		{
 			// try to flush current chain
 			cutoff_tb_chain(index,position);
@@ -71,6 +71,7 @@ ULONG add_tb(UWORD index, ULONG position)
 
 			newtb=get_free_tb(); // here is no chance to fail!... hopefully...
 		}
+
 	}
 
 
@@ -85,7 +86,7 @@ ULONG add_tb(UWORD index, ULONG position)
 
 
 // shorten given twobyter chain to have only actual (<wrk.maxwin old) elements, giving some free elements to reuse
-void cutoff_tb_chain(UWORD index,ULONG position)
+void cutoff_tb_chain(UWORD index,OFFSET position)
 {
 	struct tb_chain * curr, * prev;
 

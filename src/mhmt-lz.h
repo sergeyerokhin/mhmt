@@ -33,11 +33,11 @@ struct lzcode
 
 
 
-void make_lz_codes(ULONG position, ULONG actual_len, UBYTE * hash, struct lzcode * codes);
+void make_lz_codes(OFFSET position, ULONG actual_len, UBYTE * hash, struct lzcode * codes);
 
-ULONG get_lz_price_megalz(ULONG position, struct lzcode * lzcode);
-ULONG get_lz_price_hrum  (ULONG position, struct lzcode * lzcode);
-ULONG get_lz_price_hrust (ULONG position, struct lzcode * lzcode);
+ULONG get_lz_price_megalz(OFFSET position, struct lzcode * lzcode);
+ULONG get_lz_price_hrum  (OFFSET position, struct lzcode * lzcode);
+ULONG get_lz_price_hrust (OFFSET position, struct lzcode * lzcode);
 
 
 

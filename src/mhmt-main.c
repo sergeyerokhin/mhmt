@@ -52,7 +52,7 @@ int main( int argc, char* argv[] )
 			dump_config();
 			if( wrk.mode )
 			{
-			error += depack() ? 0 : 1;
+				error += depack() ? 0 : 1;
 			}
 			else
 			{
@@ -203,6 +203,8 @@ ULONG do_files(void)
 
 	struct stat stfile;
 
+	UBYTE * tmp;
+	ULONG len;
 
 	// if there is no output filename, create it
 	if( !wrk.fname_out )
@@ -309,28 +311,38 @@ ULONG do_files(void)
 
 
 	// load files in mem
-	wrk.indata=(UBYTE *)malloc(wrk.inlen);
-	if( !wrk.indata )
+	//
+	// first allocate place for both prebin and input file
+	len = wrk.inlen + wrk.prelen; // wrk.prelen is 0 if wrk.prebin==0
+	tmp = (UBYTE *)malloc( len );
+	//
+	// check alloc is OK
+	if( !tmp )
 	{
-		printf("Cannot allocate %d bytes of memory for loading input file \"%s\"!\n", wrk.inlen, wrk.fname_in);
+		if( wrk.prebin )
+		{
+			printf("Cannot allocate %d bytes of memory for loading both input file \"%s\" and prebin file \"%s\"!\n", len, wrk.fname_in, wrk.fname_prebin );
+		}
+		else
+		{
+			printf("Cannot allocate %d bytes of memory for loading input file \"%s\"!\n", wrk.inlen, wrk.fname_in );
+		}
 		return 0;
 	}
+	//
+	// assign to wrk.indata
+	wrk.indata_raw = tmp;
+	wrk.indata     = tmp + (wrk.prebin ? wrk.prelen : 0); // so we access prebin using negative displacements into wrk.indata array
+	//
+	// load input file and prebin file
 	if( wrk.inlen!=fread(wrk.indata,1,wrk.inlen,wrk.file_in) )
 	{
 		printf("Cannot successfully load input file \"%s\" in memory!\n",wrk.fname_in);
 		return 0;
 	}
-
 	if( wrk.prebin )
 	{
-		wrk.predata=(UBYTE *)malloc(wrk.prelen);
-		if( !wrk.predata )
-		{
-			printf("Cannot allocate %d bytes of memory for loading prebin file \"%s\"!\n", wrk.prelen, wrk.fname_prebin);
-			return 0;
-		}
-
-		if( wrk.prelen!=fread(wrk.predata,1,wrk.prelen,wrk.file_prebin) )
+		if( wrk.prelen!=fread(tmp,1,wrk.prelen,wrk.file_prebin) )
 		{
 			printf("Cannot successfully load prebin file \"%s\" in memory!\n",wrk.fname_prebin);
 			return 0;

@@ -6,7 +6,7 @@
 
 // allocate mem for hash (length) and build it from data
 // length must be at least 3 bytes, since hash[0] and hash[1] are not valid hashes
-UBYTE * build_hash(UBYTE * data, ULONG length)
+UBYTE * build_hash(UBYTE * data, ULONG length, ULONG prebin_len)
 {
 	UBYTE * hash;
 
@@ -16,14 +16,14 @@ UBYTE * build_hash(UBYTE * data, ULONG length)
 	if( !length )
 		return NULL;
 
-	hash=(UBYTE *)malloc( length );
+	hash=(UBYTE *)malloc( length+prebin_len );
         if( !hash )
         	return NULL;
 
 
 	prev=curr=0;
-	i=length;
-	src = data;
+	i=length+prebin_len;
+	src = data-prebin_len;
 	dst = hash;
 
 	do
@@ -38,14 +38,14 @@ UBYTE * build_hash(UBYTE * data, ULONG length)
 
 
 
-	return hash;
+	return hash+prebin_len; // negative indices must be used to access prebin hashes
 }
 
 
 
 // free hash
-void destroy_hash(UBYTE * hash)
+void destroy_hash(UBYTE * hash, ULONG prebin_len)
 {
-	if( hash ) free(hash);
+	if( hash ) free(hash-prebin_len);
 }
 

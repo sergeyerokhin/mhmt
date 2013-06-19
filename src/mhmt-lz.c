@@ -12,10 +12,11 @@
 
 // Universal search function
 //
-void make_lz_codes(ULONG position, ULONG actual_len, UBYTE * hash, struct lzcode * codes)
+void make_lz_codes(OFFSET position, ULONG actual_len, UBYTE * hash, struct lzcode * codes)
 {
+	OFFSET i;
 	ULONG codepos;
-	ULONG codelen,i;
+	ULONG codelen;
 	ULONG was_match;
 	UBYTE curr_byte,next_byte;
 	struct tb_chain * curr_tb;
@@ -35,14 +36,12 @@ void make_lz_codes(ULONG position, ULONG actual_len, UBYTE * hash, struct lzcode
 	{                          // add 12,14,16,...,40,42 bytes copies, if possible
 		for(codelen=12;codelen<=42;codelen+=2)
 		{
-			if( position <= (actual_len-codelen) )
-			{
-				codes[codepos].length = codelen;
-				codes[codepos].disp   = 0;
-				codepos++;
-			}
-			else
+			if( position > (actual_len-codelen) )
 				break;
+		
+			codes[codepos].length = codelen;
+			codes[codepos].disp   = 0;
+			codepos++;
 		}
 	}
 
@@ -54,7 +53,7 @@ void make_lz_codes(ULONG position, ULONG actual_len, UBYTE * hash, struct lzcode
 	//
 	curr_byte=wrk.indata[position];
 	//
-	i = (position>8) ? position-8 : 0;
+	i = (position > (8LL-wrk.prelen) ) ? position-8 : (0LL-wrk.prelen);
 	do
 	{
 		if( wrk.indata[i] == curr_byte )
@@ -74,7 +73,7 @@ void make_lz_codes(ULONG position, ULONG actual_len, UBYTE * hash, struct lzcode
 	// for hrust, check 3-byte insertion code (-1..-79)
 	if( (wrk.packtype==PK_HST) && (position < (actual_len-2)) )
 	{
-		i = (position>79) ? position-79 : 0;
+		i = (position > (79LL-wrk.prelen) ) ? position-79 : (0LL-wrk.prelen);
 		do
 		{
 			if( (wrk.indata[i]==curr_byte) && (wrk.indata[i+2]==wrk.indata[position+2]) )
@@ -218,8 +217,8 @@ MATCH_FAIL: // entrance for failed matches here: used 3-fold so we set "goto" he
 
 
 // returns price in bits or zero if error
-//
-ULONG get_lz_price_megalz(ULONG position, struct lzcode * lzcode)
+//										
+ULONG get_lz_price_megalz(OFFSET position, struct lzcode * lzcode)
 {
 	ULONG varbits,varlen;
 	LONG length,disp;
@@ -280,7 +279,7 @@ INVALID_CODE_MEGALZ:
 }
 
 
-ULONG get_lz_price_hrum(ULONG position, struct lzcode * lzcode)
+ULONG get_lz_price_hrum(OFFSET position, struct lzcode * lzcode)
 {
 	ULONG varlen;
 	LONG length,disp;
@@ -347,7 +346,7 @@ INVALID_CODE_HRUM:
 
 
 
-ULONG get_lz_price_hrust(ULONG position, struct lzcode * lzcode)
+ULONG get_lz_price_hrust(OFFSET position, struct lzcode * lzcode)
 {
 	ULONG varbits,varlen;
 	LONG length,disp,tmp;
@@ -437,7 +436,7 @@ ULONG get_lz_price_hrust(ULONG position, struct lzcode * lzcode)
 
 			varlen += 12;
 
-			if( position>32768 )
+			if( (position-wrk.prelen)>32768LL )
 			{
 				varlen += 6; // 8bits
 			}
@@ -445,7 +444,7 @@ ULONG get_lz_price_hrust(ULONG position, struct lzcode * lzcode)
 			{
 				tmp = 1024;
 
-				while( position>(ULONG)tmp )
+				while( (position-wrk.prelen)>(OFFSET)tmp )
 				{
 					varlen++;
 
