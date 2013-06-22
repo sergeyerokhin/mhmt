@@ -3,7 +3,7 @@ NAME            = mhmt
 OBJECTS         = mhmt-emit.o mhmt-globals.o mhmt-hash.o mhmt-lz.o mhmt-main.o mhmt-optimal.o mhmt-pack.o mhmt-parsearg.o mhmt-tb.o mhmt-depack.o
 SRCS            = mhmt-emit.s mhmt-globals.s mhmt-hash.s mhmt-lz.s mhmt-main.s mhmt-optimal.s mhmt-pack.s mhmt-parsearg.s mhmt-tb.s mhmt-depack.s
 
-CFLAGS          = -Os -Wextra -Werror -g
+CFLAGS          = -O0 -Wextra -Werror -g
 
 #switch the compiler (for the internal make rules)
 CC              = gcc

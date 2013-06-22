@@ -17,6 +17,9 @@
 	ULONG success = 1;
 
 
+
+
+
 	// rewind input stream
 	//
 	check = depack_getbyte(DEPACK_GETBYTE_REWIND);

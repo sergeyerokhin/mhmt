@@ -24,9 +24,9 @@ ULONG depack_getbits(ULONG numbits, ULONG operation);
 
 ULONG depack_getbits_word(void);
 
-
-#define DEPACK_OUTBYTE_FLUSH 1
-#define DEPACK_OUTBYTE_ADD   2
+#define DEPACK_OUTBYTE_INIT  1
+#define DEPACK_OUTBYTE_FLUSH 2
+#define DEPACK_OUTBYTE_ADD   3
 ULONG depack_outbyte(UBYTE byte, ULONG operation);
 ULONG depack_repeat(LONG disp, ULONG length);
 

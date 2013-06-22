@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "mhmt-types.h"
 #include "mhmt-globals.h"
@@ -11,6 +12,8 @@
 ULONG buf_size=0;
 ULONG buf_ptr=0;
 UBYTE * buffer=NULL;
+
+LONG backptr, frontptr;
 
 
 ULONG depack(void)
@@ -63,13 +66,15 @@ ULONG depack(void)
 
 	success = success && emit_file(NULL,EMIT_FILE_INIT);
 
-//	success = success && (*checker) ();
+	if( wrk.packtype==PK_MLZ )
+		success = success && (*checker) ();
 
 //#ifdef DBG
 //	printf("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
 //#endif
 
 
+	depack_outbyte( 0, DEPACK_OUTBYTE_INIT );
 
 	success = success && (*depacker)();
 
@@ -133,9 +138,6 @@ ULONG depack_getbyte(ULONG operation)
 	{
 		if( position < wrk.inlen )
 		{
-//#ifdef DBG
-//			printf("<%02x>", wrk.indata[position]);
-//#endif
 			return (ULONG)wrk.indata[position++];
 		}
 	}
@@ -185,9 +187,6 @@ ULONG depack_getbits(ULONG numbits, ULONG operation)
 				}
 			}
 
-//#ifdef DBG
-//			printf("%d",bits>>31);
-//#endif
 			fetched_bits = ( fetched_bits<<1 ) | ( 1&(bits>>31) );
 			bits <<= 1;
 			num_bits_left--;
@@ -256,15 +255,35 @@ ULONG depack_getbits_word(void)
 // returns zero if error (in emit_file()), otherwise non-zero
 ULONG depack_outbyte(UBYTE byte, ULONG operation)
 {
-	if( operation==DEPACK_OUTBYTE_ADD )
+	LONG pre_size;
+
+	if( operation==DEPACK_OUTBYTE_INIT )
+	{
+		frontptr = 0;
+
+		if( wrk.prebin )
+		{
+			// copy some data from prebinary buffer
+			pre_size = wrk.prelen;
+			if( pre_size > (LONG)buf_size )
+				pre_size = buf_size;
+			//
+			memcpy(buffer+buf_size-pre_size, wrk.indata-pre_size, pre_size);
+
+			// set backptr
+			backptr = 0-pre_size;
+		}
+		else
+		{
+			backptr = 0;
+		}
+	}
+	else if( operation==DEPACK_OUTBYTE_ADD )
 	{
 		buffer[buf_ptr++] = byte;
 
+		frontptr++;
 
-		if( buf_ptr>0x51d )
-		{
-//			printf("слом\n");
-		}
 
 
 		if( buf_ptr >= buf_size )
@@ -296,10 +315,6 @@ ULONG depack_repeat(LONG disp, ULONG length)
 	ULONG back_ptr;
 	ULONG success=1;
 
-//#ifdef DBG
-//	printf("\n");
-//#endif
-
 
 	// in a self-consistent system, these three errors should never appear, since there is input stream check before actual depacking
 	if( !length )
@@ -320,6 +335,13 @@ ULONG depack_repeat(LONG disp, ULONG length)
 	else
 	{
 		back_ptr = (disp+buf_ptr) & (buf_size-1); // buf_size MUST BE 2^N!
+
+		if( (frontptr+disp) < backptr )
+		{
+			printf("mhmt-depack.c:depack_repeat() - displacement is out of prebinary or already depacked data!\n");
+			return 0;
+		}
+
 
 		do
 		{
